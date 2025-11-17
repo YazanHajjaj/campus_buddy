@@ -4,16 +4,7 @@ import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
-/// Default [FirebaseOptions] for use with your Firebase apps.
-///
-/// Example:
-/// ```dart
-/// import 'firebase_options.dart';
-/// // ...
-/// await Firebase.initializeApp(
-///   options: DefaultFirebaseOptions.currentPlatform,
-/// );
-/// ```
+
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
@@ -28,10 +19,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return macos;
       case TargetPlatform.windows:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for windows - '
@@ -58,6 +46,15 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyCOM3exHI_Uu2kdKDnD8tYPvKMaUV5KsmM',
+    appId: '1:903084774731:ios:f53a64f804b03c69c184ce',
+    messagingSenderId: '903084774731',
+    projectId: 'campusbuddy-sentinel',
+    storageBucket: 'campusbuddy-sentinel.firebasestorage.app',
+    iosBundleId: 'com.sentinel.campusBuddy',
+  );
+
+  static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyCOM3exHI_Uu2kdKDnD8tYPvKMaUV5KsmM',
     appId: '1:903084774731:ios:f53a64f804b03c69c184ce',
     messagingSenderId: '903084774731',
