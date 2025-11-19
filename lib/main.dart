@@ -8,11 +8,11 @@ import 'firebase_options.dart';
 import 'debug/firebase_health_check.dart';
 import 'debug/test_resource_backend.dart';
 
-// Auth + App Core
+// Authentication
 import 'core/auth/sign_in_screen.dart';
 import 'core/services/auth_service.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase
@@ -20,7 +20,7 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Anonymous fallback ONLY if no user signed in
+  // Fallback sign-in for test cases if no user is authenticated
   final auth = FirebaseAuth.instance;
   if (auth.currentUser == null) {
     await auth.signInAnonymously();
@@ -40,17 +40,13 @@ class CampusBuddyApp extends StatelessWidget {
         useMaterial3: true,
         colorSchemeSeed: Colors.blue,
       ),
-      home: const AuthGate(), // Entry point decided by authentication
+      home: const AuthGate(),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
-/// ---------------------------------------------------------
-/// AuthGate — Chooses which screen to show:
-/// - Signed in → HomeScreen
-/// - Not signed in → SignInScreen
-/// ---------------------------------------------------------
+/// Selects the initial screen based on the FirebaseAuth state.
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -59,29 +55,25 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder(
       stream: AuthService().authStateChanges,
       builder: (context, snapshot) {
-        // Loading indicator
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        // User authenticated → go to HomeScreen
+        // User already authenticated
         if (snapshot.hasData) {
           return const HomeScreen();
         }
 
-        // No user → go to SignInScreen
+        // Not authenticated → show sign in page
         return const SignInScreen();
       },
     );
   }
 }
 
-/// ---------------------------------------------------------
-/// HomeScreen — Basic signed-in screen
-/// Shows user's UID and anonymous status.
-/// ---------------------------------------------------------
+/// Basic home screen showing user information and dev tools.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -123,7 +115,6 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // Optional debug navigation
             ElevatedButton(
               onPressed: () {
                 Navigator.push(

@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+
 import 'package:campus_buddy/core/services/storage_service.dart';
 
+/// Internal test screen for validating Firebase Storage uploads.
 class StorageTestScreen extends StatefulWidget {
   const StorageTestScreen({super.key});
 
@@ -11,81 +13,77 @@ class StorageTestScreen extends StatefulWidget {
 }
 
 class _StorageTestScreenState extends State<StorageTestScreen> {
+  final StorageService storage = StorageService();
+
   String status = "No uploads yet";
   String? downloadUrl;
 
-  final StorageService storage = StorageService();
-
-  // -------------------------------------------------------------
-  // PICK FILE (for real devices — does NOT work on iOS simulator)
-  // -------------------------------------------------------------
+  /// Picks a file from device storage and uploads it to Firebase Storage.
+  /// Note: FilePicker does not work on iOS simulators.
   Future<void> pickAndUpload() async {
-    print("🟢 [UI] pickAndUpload() called");
+    print("[StorageTest] pickAndUpload() called");
 
     final result = await FilePicker.platform.pickFiles();
-    print("📎 [UI] FilePicker result: ${result != null}");
+    print("[StorageTest] FilePicker result: ${result != null}");
 
     if (result == null || result.files.single.path == null) {
-      print("⚠️ [UI] No file selected");
+      print("[StorageTest] No file selected");
       return;
     }
 
     final file = File(result.files.single.path!);
-    print("📎 [UI] Selected file path: ${file.path}");
+    print("[StorageTest] Selected file: ${file.path}");
 
     setState(() => status = "Uploading...");
 
     final fileName =
         "${DateTime.now().millisecondsSinceEpoch}_${result.files.single.name}";
     final path = "test_uploads/$fileName";
-    print("📝 [UI] Uploading real file to: $path");
 
     final url = await storage.uploadFile(file: file, path: path);
 
     setState(() {
       if (url != null) {
-        status = "Upload successful!";
+        status = "Upload successful";
         downloadUrl = url;
       } else {
-        status = "Upload failed!";
+        status = "Upload failed";
       }
     });
   }
 
-  // -------------------------------------------------------------
-  // DUMMY UPLOAD (works on iOS SIMULATOR)
-  // -------------------------------------------------------------
+  /// Creates a temporary dummy text file and uploads it.
+  /// Useful for iOS simulator testing where FilePicker is not supported.
   Future<void> uploadDummyFile() async {
-    print("🟢 [UI] Dummy upload started");
+    print("[StorageTest] Dummy upload started");
 
     final tempDir = Directory.systemTemp;
     final dummyFile = File("${tempDir.path}/dummy_upload.txt");
-    await dummyFile.writeAsString("Hello from iOS Simulator test!");
+    await dummyFile.writeAsString("Simulator test file");
 
-    print("📄 [UI] Dummy file created at: ${dummyFile.path}");
+    print("[StorageTest] Dummy file: ${dummyFile.path}");
 
     setState(() => status = "Uploading dummy file...");
 
     try {
       final path =
           "test_uploads/simulator_test_${DateTime.now().millisecondsSinceEpoch}.txt";
-      print("📝 [UI] Uploading dummy to: $path");
 
       final url = await storage.uploadFile(file: dummyFile, path: path);
 
       if (url != null) {
-        print("✅ [UI] Dummy upload successful: $url");
+        print("[StorageTest] Dummy upload successful: $url");
         setState(() {
-          status = "Dummy upload successful!";
+          status = "Dummy upload successful";
           downloadUrl = url;
         });
       } else {
-        print("💥 [UI] Dummy upload returned null URL");
-        setState(() => status = "Dummy upload failed!");
+        print("[StorageTest] Dummy upload returned null URL");
+        setState(() => status = "Dummy upload failed");
       }
     } catch (e) {
-      print("🔥 [UI] Dummy upload EXCEPTION: $e");
-      setState(() => status = "Dummy upload failed!");
+      print("[StorageTest] Dummy upload exception: $e");
+      setState(() => status = "Dummy upload failed");
     }
   }
 

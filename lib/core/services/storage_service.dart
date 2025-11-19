@@ -1,44 +1,39 @@
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 
-/// Central wrapper for Firebase Storage operations.
+/// Firebase Storage wrapper for file uploads and deletions.
 class StorageService {
-  /// Explicit instance bound to the Campus Buddy storage bucket.
+  /// Instance bound to the project's storage bucket.
   final FirebaseStorage _storage = FirebaseStorage.instanceFor(
     bucket: "gs://campusbuddy-sentinel.firebasestorage.app",
   );
 
   FirebaseStorage get storage => _storage;
 
-  /// Uploads [file] to the given [path] in Firebase Storage.
-  ///
-  /// Returns the public download URL on success, or `null` if the upload fails.
+  /// Uploads a file to the given storage path.
+  /// Returns the download URL on success, or null on failure.
   Future<String?> uploadFile({
     required File file,
     required String path,
   }) async {
     final exists = file.existsSync();
-    print("📁 [StorageService] Starting upload to: $path");
-    print("📁 [StorageService] File exists: $exists | ${file.path}");
+    print("[StorageService] Upload start: path=$path, exists=$exists");
 
     if (!exists) {
-      print("🔥 [StorageService] Aborting upload: file does not exist on disk.");
+      print("[StorageService] Upload aborted: file not found on disk.");
       return null;
     }
 
     try {
-      // Create a storage reference for the target path.
       final ref = _storage.ref(path);
-      print("☁️ [StorageService] Got ref: ${ref.fullPath}");
+      print("[StorageService] Storage ref: ${ref.fullPath}");
 
       final uploadTask = ref.putFile(file);
 
-      // Log basic progress to the console for debugging.
       uploadTask.snapshotEvents.listen((event) {
-        final transferred = event.bytesTransferred;
-        final total = event.totalBytes;
         print(
-          "⬆️ [StorageService] State: ${event.state} | bytes: $transferred/$total",
+          "[StorageService] Upload state=${event.state} "
+              "bytes=${event.bytesTransferred}/${event.totalBytes}",
         );
       });
 
@@ -46,40 +41,33 @@ class StorageService {
 
       if (snapshot.state == TaskState.success) {
         final url = await snapshot.ref.getDownloadURL();
-        print("✅ [StorageService] Upload completed. Download URL: $url");
+        print("[StorageService] Upload completed. URL=$url");
         return url;
       } else {
-        print(
-          "⚠️ [StorageService] Upload finished with non-success state: ${snapshot.state}",
-        );
+        print("[StorageService] Upload finished with state: ${snapshot.state}");
         return null;
       }
     } on FirebaseException catch (e) {
-      print(
-        "🔥 [StorageService] FirebaseException during upload: ${e.code} - ${e.message}",
-      );
+      print("[StorageService] Firebase error: ${e.code} - ${e.message}");
       return null;
     } catch (e) {
-      print("🔥 [StorageService] Unexpected upload error: $e");
+      print("[StorageService] Unexpected error: $e");
       return null;
     }
   }
 
-  /// Deletes the object at the given [path] from Firebase Storage.
-  ///
-  /// Returns `true` on successful deletion, `false` if an error occurs.
+  /// Deletes a file at the given storage path.
+  /// Returns true if deletion succeeds, otherwise false.
   Future<bool> deleteFile(String path) async {
     try {
       await _storage.ref(path).delete();
-      print("🗑️ [StorageService] Deleted file at: $path");
+      print("[StorageService] File deleted: $path");
       return true;
     } on FirebaseException catch (e) {
-      print(
-        "🔥 [StorageService] FirebaseException during delete: ${e.code} - ${e.message}",
-      );
+      print("[StorageService] Firebase delete error: ${e.code} - ${e.message}");
       return false;
     } catch (e) {
-      print("🔥 [StorageService] Unexpected delete error: $e");
+      print("[StorageService] Unexpected delete error: $e");
       return false;
     }
   }

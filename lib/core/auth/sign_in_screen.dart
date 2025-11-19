@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../services/auth_service.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -19,7 +18,7 @@ class _SignInScreenState extends State<SignInScreen> {
   bool _loading = false;
   String? _error;
 
-  /// Runs an async action with loading + error handling.
+  /// Executes an auth action and manages loading/error state.
   Future<void> _run(Future<void> Function() action) async {
     setState(() {
       _loading = true;
@@ -63,13 +62,11 @@ class _SignInScreenState extends State<SignInScreen> {
               ),
               const SizedBox(height: 40),
 
-              // Anonymous Sign-in
+              // Anonymous sign-in
               FilledButton(
                 onPressed: _loading
                     ? null
-                    : () => _run(() async {
-                  await _authService.signInAnonymously();
-                }),
+                    : () => _run(() => _authService.signInAnonymously()),
                 child: const Text("Sign In Anonymously"),
               ),
 
@@ -77,7 +74,7 @@ class _SignInScreenState extends State<SignInScreen> {
               const Divider(),
               const SizedBox(height: 30),
 
-              // Email/Password Form
+              // Email/Password form
               Form(
                 key: _formKey,
                 child: Column(
@@ -89,10 +86,15 @@ class _SignInScreenState extends State<SignInScreen> {
                         prefixIcon: Icon(Icons.email),
                         border: OutlineInputBorder(),
                       ),
-                      validator: (v) =>
-                      (v == null || v.isEmpty) ? "Enter email" : null,
+                      validator: (v) {
+                        if (v == null || v.isEmpty) {
+                          return "Enter email";
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 20),
+
                     TextFormField(
                       controller: _password,
                       obscureText: true,
@@ -101,10 +103,12 @@ class _SignInScreenState extends State<SignInScreen> {
                         prefixIcon: Icon(Icons.lock),
                         border: OutlineInputBorder(),
                       ),
-                      validator: (v) =>
-                      (v == null || v.length < 6)
-                          ? "Min 6 characters"
-                          : null,
+                      validator: (v) {
+                        if (v == null || v.length < 6) {
+                          return "Min 6 characters";
+                        }
+                        return null;
+                      },
                     ),
                   ],
                 ),
@@ -114,7 +118,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
               if (_error != null)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
+                  padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
                     _error!,
                     style: const TextStyle(color: Colors.red),
@@ -127,36 +131,30 @@ class _SignInScreenState extends State<SignInScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Email Sign-in
                   FilledButton(
                     onPressed: _loading
                         ? null
                         : () {
                       if (!_formKey.currentState!.validate()) return;
-                      _run(() async {
-                        await _authService.signInWithEmailAndPassword(
-                          email: _email.text.trim(),
-                          password: _password.text.trim(),
-                        );
-                      });
+                      _run(() => _authService.signInWithEmailAndPassword(
+                        email: _email.text.trim(),
+                        password: _password.text.trim(),
+                      ));
                     },
                     child: const Text("Sign In"),
                   ),
 
                   const SizedBox(width: 20),
 
-                  // Email Registration
                   OutlinedButton(
                     onPressed: _loading
                         ? null
                         : () {
                       if (!_formKey.currentState!.validate()) return;
-                      _run(() async {
-                        await _authService.registerWithEmailAndPassword(
-                          email: _email.text.trim(),
-                          password: _password.text.trim(),
-                        );
-                      });
+                      _run(() => _authService.registerWithEmailAndPassword(
+                        email: _email.text.trim(),
+                        password: _password.text.trim(),
+                      ));
                     },
                     child: const Text("Register"),
                   ),
