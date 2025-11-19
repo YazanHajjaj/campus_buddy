@@ -4,9 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'firebase_options.dart';
 
-// Debug/testing screens
-import 'debug/firebase_health_check.dart';
-import 'debug/test_resource_backend.dart';
+// Debug/testing
+import 'debug/developer_tools_screen.dart';
 
 // Authentication
 import 'core/auth/sign_in_screen.dart';
@@ -20,7 +19,7 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Fallback sign-in for test cases if no user is authenticated
+  // Anonymous fallback sign-in for development
   final auth = FirebaseAuth.instance;
   if (auth.currentUser == null) {
     await auth.signInAnonymously();
@@ -46,7 +45,7 @@ class CampusBuddyApp extends StatelessWidget {
   }
 }
 
-/// Selects the initial screen based on the FirebaseAuth state.
+/// Selects initial screen based on FirebaseAuth state.
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -61,19 +60,17 @@ class AuthGate extends StatelessWidget {
           );
         }
 
-        // User already authenticated
         if (snapshot.hasData) {
           return const HomeScreen();
         }
 
-        // Not authenticated → show sign in page
         return const SignInScreen();
       },
     );
   }
 }
 
-/// Basic home screen showing user information and dev tools.
+/// Home screen with user info and access to Developer Tools.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -85,14 +82,33 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text("Campus Buddy"),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await AuthService().signOut();
+          PopupMenuButton<String>(
+            onSelected: (value) async {
+              if (value == "dev_tools") {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const DeveloperToolsScreen(),
+                  ),
+                );
+              } else if (value == "logout") {
+                await AuthService().signOut();
+              }
             },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: "dev_tools",
+                child: Text("Developer Tools"),
+              ),
+              PopupMenuItem(
+                value: "logout",
+                child: Text("Sign Out"),
+              ),
+            ],
           )
         ],
       ),
+
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -112,31 +128,6 @@ class HomeScreen extends StatelessWidget {
             Text(
               "Anonymous User: ${user?.isAnonymous}",
               style: const TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 20),
-
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const ResourceBackendTestScreen(),
-                  ),
-                );
-              },
-              child: const Text("Open Resource Backend Test"),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const FirebaseHealthCheckScreen(),
-                  ),
-                );
-              },
-              child: const Text("Open Firebase Health Check"),
             ),
           ],
         ),
