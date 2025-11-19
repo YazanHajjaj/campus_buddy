@@ -1,12 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Application-level representation of a user profile stored in Firestore.
-/// This model abstracts away FirebaseAuth.User and keeps only the fields
-/// required by the app (role, timestamps, anonymous state, etc.).
+/// Firestore-backed application user profile.
 class AppUser {
   final String uid;
   final String? email;
-  final String role; // e.g. "student", "mentor", "admin"
+  final String role; // e.g. student, mentor, admin
   final bool isAnonymous;
   final DateTime createdAt;
   final DateTime lastLogin;
@@ -20,7 +18,7 @@ class AppUser {
     required this.lastLogin,
   });
 
-  /// Converts the user profile into a Firestore-ready map.
+  /// Serializes this user profile for Firestore.
   Map<String, dynamic> toMap() {
     return {
       'uid': uid,
@@ -32,9 +30,7 @@ class AppUser {
     };
   }
 
-  /// Constructs an [AppUser] from Firestore data.
-  ///
-  /// Any missing fields are replaced with safe defaults.
+  /// Deserializes a Firestore document into an AppUser instance.
   factory AppUser.fromMap(Map<String, dynamic> data, String documentId) {
     final createdAtRaw = data['createdAt'];
     final lastLoginRaw = data['lastLogin'];
@@ -44,12 +40,9 @@ class AppUser {
       email: data['email'] as String?,
       role: data['role'] as String? ?? 'student',
       isAnonymous: data['isAnonymous'] as bool? ?? false,
-
-      // Fallbacks ensure model remains safe even if timestamps are missing.
       createdAt: createdAtRaw is Timestamp
           ? createdAtRaw.toDate()
           : DateTime.now(),
-
       lastLogin: lastLoginRaw is Timestamp
           ? lastLoginRaw.toDate()
           : DateTime.now(),

@@ -1,16 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Utility service for performing Firestore read/write diagnostics.
-/// Used by FirebaseHealthCheckScreen for system verification.
+/// Simple Firestore diagnostics used by the Firebase health check screen.
 class FirestoreTestService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   CollectionReference<Map<String, dynamic>> get _ref =>
       _db.collection('health_check');
 
-  /// Writes a simple diagnostic document for health testing.
-  ///
-  /// Returns true on success, false if an exception occurs.
+  /// Writes a diagnostic document for testing Firestore write access.
   Future<bool> testWrite() async {
     try {
       await _ref.doc('test_doc').set({
@@ -19,31 +16,29 @@ class FirestoreTestService {
       });
       return true;
     } catch (e) {
-      print('🔥 [FirestoreTestService] WRITE error: $e');
+      print('[FirestoreTestService] Write error: $e');
       return false;
     }
   }
 
-  /// Reads the previously written test document.
-  ///
-  /// Returns true if the document exists, false otherwise.
+  /// Reads the diagnostic document to verify read access.
   Future<bool> testRead() async {
     try {
       final doc = await _ref.doc('test_doc').get();
       return doc.exists;
     } catch (e) {
-      print('🔥 [FirestoreTestService] READ error: $e');
+      print('[FirestoreTestService] Read error: $e');
       return false;
     }
   }
 
-  /// Returns the stored diagnostic document for debugging.
+  /// Retrieves the stored diagnostic document for display in the UI.
   Future<Map<String, dynamic>?> getTestDocument() async {
     try {
       final doc = await _ref.doc('test_doc').get();
       return doc.data();
     } catch (e) {
-      print('🔥 [FirestoreTestService] GET DOCUMENT error: $e');
+      print('[FirestoreTestService] GetDocument error: $e');
       return null;
     }
   }

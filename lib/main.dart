@@ -1,16 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-import 'debug/firebase_health_check.dart';
 import 'firebase_options.dart';
+
+// Debug/testing
+import 'debug/developer_tools_screen.dart';
+
+// Authentication
 import 'core/auth/sign_in_screen.dart';
 import 'core/services/auth_service.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Anonymous fallback sign-in for development
+  final auth = FirebaseAuth.instance;
+  if (auth.currentUser == null) {
+    await auth.signInAnonymously();
+  }
 
   runApp(const CampusBuddyApp());
 }
@@ -32,9 +45,7 @@ class CampusBuddyApp extends StatelessWidget {
   }
 }
 
-/// ---------------------------------------------------------
-/// AuthGate: Selects screen based on FirebaseAuth state.
-/// ---------------------------------------------------------
+/// Selects initial screen based on FirebaseAuth state.
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -59,9 +70,7 @@ class AuthGate extends StatelessWidget {
   }
 }
 
-/// ---------------------------------------------------------
-/// Basic Home Screen for authenticated users.
-/// ---------------------------------------------------------
+/// Home screen with user info and access to Developer Tools.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -73,14 +82,33 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text("Campus Buddy"),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await AuthService().signOut();
+          PopupMenuButton<String>(
+            onSelected: (value) async {
+              if (value == "dev_tools") {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const DeveloperToolsScreen(),
+                  ),
+                );
+              } else if (value == "logout") {
+                await AuthService().signOut();
+              }
             },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: "dev_tools",
+                child: Text("Developer Tools"),
+              ),
+              PopupMenuItem(
+                value: "logout",
+                child: Text("Sign Out"),
+              ),
+            ],
           )
         ],
       ),
+
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,

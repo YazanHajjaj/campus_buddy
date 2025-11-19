@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:campus_buddy/features/storage/storage_test_screen.dart';
 
+/// Lightweight diagnostics screen for validating Firebase functionality.
 class FirebaseHealthCheckScreen extends StatefulWidget {
   const FirebaseHealthCheckScreen({super.key});
 
@@ -29,41 +30,28 @@ class _FirebaseHealthCheckScreenState extends State<FirebaseHealthCheckScreen> {
       testDocument = null;
     });
 
-    // -------------------------------------------------------------
-    // 1. Firebase Core Check
-    // -------------------------------------------------------------
+    // Firebase Core
     try {
       final apps = Firebase.apps;
-      if (apps.isNotEmpty) {
-        coreStatus = "OK";
-      } else {
-        coreStatus = "FAILED";
-      }
+      coreStatus = apps.isNotEmpty ? "OK" : "FAILED";
     } catch (e) {
       coreStatus = "FAILED: $e";
     }
 
-    // -------------------------------------------------------------
-    // 2. Firebase Auth Check (Anonymous Login)
-    // -------------------------------------------------------------
+    // Auth (anonymous)
     try {
-      final credential = await FirebaseAuth.instance.signInAnonymously();
-      final user = credential.user;
-      if (user != null) {
-        authStatus = "OK (UID: ${user.uid})";
-      } else {
-        authStatus = "FAILED";
-      }
+      final cred = await FirebaseAuth.instance.signInAnonymously();
+      final user = cred.user;
+      authStatus = user != null ? "OK (UID: ${user.uid})" : "FAILED";
     } catch (e) {
       authStatus = "FAILED: $e";
     }
 
-    // -------------------------------------------------------------
-    // 3. Firestore Write Check
-    // -------------------------------------------------------------
+    // Firestore write
     try {
       final testRef =
       FirebaseFirestore.instance.collection("health_check_test");
+
       await testRef.doc("test_doc").set({
         "timestamp": DateTime.now().toIso8601String(),
         "status": "write_success",
@@ -74,19 +62,18 @@ class _FirebaseHealthCheckScreenState extends State<FirebaseHealthCheckScreen> {
       firestoreWriteStatus = "FAILED: $e";
     }
 
-    // -------------------------------------------------------------
-    // 4. Firestore Read Check
-    // -------------------------------------------------------------
+    // Firestore read
     try {
       final testRef =
       FirebaseFirestore.instance.collection("health_check_test");
+
       final snapshot = await testRef.doc("test_doc").get();
 
       if (snapshot.exists) {
         firestoreReadStatus = "OK";
         testDocument = snapshot.data();
       } else {
-        firestoreReadStatus = "FAILED (No document found)";
+        firestoreReadStatus = "FAILED (not found)";
       }
     } catch (e) {
       firestoreReadStatus = "FAILED: $e";
@@ -95,9 +82,6 @@ class _FirebaseHealthCheckScreenState extends State<FirebaseHealthCheckScreen> {
     setState(() {});
   }
 
-  // -------------------------------------------------------------
-  // UI
-  // -------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -112,7 +96,7 @@ class _FirebaseHealthCheckScreenState extends State<FirebaseHealthCheckScreen> {
           const SizedBox(height: 20),
 
           _buildStatusTile("Firebase Core", coreStatus),
-          _buildStatusTile("Auth (Anonymous Sign-In)", authStatus),
+          _buildStatusTile("Auth (Anonymous Login)", authStatus),
           _buildStatusTile("Firestore Write", firestoreWriteStatus),
           _buildStatusTile("Firestore Read", firestoreReadStatus),
 
@@ -132,7 +116,6 @@ class _FirebaseHealthCheckScreenState extends State<FirebaseHealthCheckScreen> {
 
           const SizedBox(height: 40),
 
-          // Existing button
           FilledButton(
             onPressed: runChecks,
             child: const Text("Run Health Check"),
@@ -140,7 +123,6 @@ class _FirebaseHealthCheckScreenState extends State<FirebaseHealthCheckScreen> {
 
           const SizedBox(height: 20),
 
-          // Button to open Storage Test Screen
           FilledButton(
             onPressed: () {
               Navigator.push(
@@ -157,7 +139,6 @@ class _FirebaseHealthCheckScreenState extends State<FirebaseHealthCheckScreen> {
     );
   }
 
-  // UI Helper
   Widget _buildStatusTile(String title, String status) {
     final ok = status.startsWith("OK");
     final fail = status.startsWith("FAILED");
