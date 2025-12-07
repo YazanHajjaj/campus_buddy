@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+
+
+import 'features/profile/edit_profile_screen.dart';
+
 import 'firebase_options.dart';
 
 // Debug/testing
@@ -71,6 +75,8 @@ class AuthGate extends StatelessWidget {
 }
 
 /// Home screen with user info and access to Developer Tools.
+
+    /// Home screen with user info and access to Developer Tools.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -129,9 +135,38 @@ class HomeScreen extends StatelessWidget {
               "Anonymous User: ${user?.isAnonymous}",
               style: const TextStyle(color: Colors.grey),
             ),
+            const SizedBox(height: 24),
+
+            // زر Edit Profile داخل الصفحة
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const EditProfileScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.edit),
+              label: const Text("Edit Profile"),
+            ),
           ],
         ),
       ),
+
+      // زر عائم لفتح صفحة Edit Profile من أي مكان
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const EditProfileScreen(),
+            ),
+          );
+        },
+        child: const Icon(Icons.edit),
+      ),
     );
   }
-}
+}      
+        
