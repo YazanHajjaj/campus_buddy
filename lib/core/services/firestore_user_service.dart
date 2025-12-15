@@ -1,12 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 
-import '../models/app_user.dart';
+import '../models/auth_user.dart';
 
-/// Firestore operations for AppUser profiles.
+/// Firestore operations for AuthUser records.
+/// Handles system-level user identity data only.
 class FirestoreUserService {
   FirestoreUserService._internal();
-  static final FirestoreUserService _instance = FirestoreUserService._internal();
+  static final FirestoreUserService _instance =
+  FirestoreUserService._internal();
   factory FirestoreUserService() => _instance;
 
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -14,17 +16,19 @@ class FirestoreUserService {
   CollectionReference<Map<String, dynamic>> get _usersRef =>
       _db.collection('users');
 
-  /// Returns the AppUser profile for the given uid.
-  Future<AppUser?> getUserById(String uid) async {
+  /// Returns the AuthUser for the given uid.
+  Future<AuthUser?> getUserById(String uid) async {
     final doc = await _usersRef.doc(uid).get();
+
     if (!doc.exists || doc.data() == null) {
       return null;
     }
-    return AppUser.fromMap(doc.data()!, doc.id);
+
+    return AuthUser.fromMap(doc.data()!, doc.id);
   }
 
-  /// Saves or updates the provided AppUser model.
-  Future<void> saveUser(AppUser user) async {
+  /// Saves or updates the provided AuthUser.
+  Future<void> saveUser(AuthUser user) async {
     await _usersRef.doc(user.uid).set(
       user.toMap(),
       SetOptions(merge: true),
@@ -39,8 +43,8 @@ class FirestoreUserService {
     );
   }
 
-  /// Creates or updates a Firestore profile from a FirebaseAuth user.
-  Future<AppUser> upsertUserFromFirebaseUser(
+  /// Creates or updates an AuthUser from a FirebaseAuth user.
+  Future<AuthUser> upsertUserFromFirebaseUser(
       fb_auth.User firebaseUser,
       ) async {
     final now = DateTime.now();
@@ -48,8 +52,8 @@ class FirestoreUserService {
     final existing = await docRef.get();
 
     if (!existing.exists || existing.data() == null) {
-      // Initial profile creation.
-      final newUser = AppUser(
+      // first-time creation
+      final newUser = AuthUser(
         uid: firebaseUser.uid,
         email: firebaseUser.email,
         role: 'student',
@@ -57,10 +61,11 @@ class FirestoreUserService {
         createdAt: now,
         lastLogin: now,
       );
+
       await docRef.set(newUser.toMap());
       return newUser;
     } else {
-      // Update existing profile metadata.
+      // update metadata
       await docRef.set(
         {
           'lastLogin': Timestamp.fromDate(now),
@@ -71,7 +76,7 @@ class FirestoreUserService {
       );
 
       final updated = await docRef.get();
-      return AppUser.fromMap(updated.data()!, updated.id);
+      return AuthUser.fromMap(updated.data()!, updated.id);
     }
   }
 }

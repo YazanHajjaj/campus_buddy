@@ -2,9 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import 'firestore_user_service.dart';
-import '../models/app_user.dart';
+import '../models/auth_user.dart';
 
-/// Authentication wrapper around FirebaseAuth with Firestore profile sync.
+/// Authentication wrapper around FirebaseAuth with Firestore user sync.
 class AuthService {
   AuthService._internal();
   static final AuthService _instance = AuthService._internal();
@@ -16,8 +16,8 @@ class AuthService {
   /// Stream of raw FirebaseAuth user objects.
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  /// Stream of AppUser profiles synced with Firestore.
-  Stream<AppUser?> get appUserChanges {
+  /// Stream of AuthUser profiles synced with Firestore.
+  Stream<AuthUser?> get authUserChanges {
     return _auth.authStateChanges().asyncMap((user) async {
       if (user == null) return null;
       return _userService.upsertUserFromFirebaseUser(user);
@@ -31,7 +31,7 @@ class AuthService {
   // AUTH METHODS
   // ---------------------------------------------------------------------------
 
-  /// Signs in anonymously and ensures a corresponding Firestore profile exists.
+  /// Signs in anonymously and ensures a Firestore user exists.
   Future<User?> signInAnonymously() async {
     try {
       final credential = await _auth.signInAnonymously();
@@ -69,13 +69,14 @@ class AuthService {
       return user;
     } on FirebaseAuthException catch (e, stack) {
       debugPrint(
-          'signInWithEmailAndPassword error: ${e.code} – ${e.message}');
+        'signInWithEmailAndPassword error: ${e.code} – ${e.message}',
+      );
       debugPrint(stack.toString());
       rethrow;
     }
   }
 
-  /// Creates an account with email/password and syncs the profile.
+  /// Creates an account with email/password and syncs Firestore.
   Future<User?> registerWithEmailAndPassword({
     required String email,
     required String password,
@@ -95,7 +96,8 @@ class AuthService {
       return user;
     } on FirebaseAuthException catch (e, stack) {
       debugPrint(
-          'registerWithEmailAndPassword error: ${e.code} – ${e.message}');
+        'registerWithEmailAndPassword error: ${e.code} – ${e.message}',
+      );
       debugPrint(stack.toString());
       rethrow;
     }
@@ -106,8 +108,8 @@ class AuthService {
     await _auth.signOut();
   }
 
-  /// Loads the Firestore AppUser profile for the current Firebase user.
-  Future<AppUser?> getCurrentAppUser() async {
+  /// Loads the Firestore AuthUser for the current Firebase user.
+  Future<AuthUser?> getCurrentAuthUser() async {
     final user = _auth.currentUser;
     if (user == null) return null;
     return _userService.getUserById(user.uid);

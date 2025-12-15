@@ -1,15 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Firestore-backed application user profile.
-class AppUser {
+class AuthUser {
   final String uid;
   final String? email;
-  final String role; // e.g. student, mentor, admin
+  final String role;
   final bool isAnonymous;
   final DateTime createdAt;
   final DateTime lastLogin;
 
-  AppUser({
+  AuthUser({
     required this.uid,
     required this.email,
     required this.role,
@@ -18,7 +18,6 @@ class AppUser {
     required this.lastLogin,
   });
 
-  /// Serializes this user profile for Firestore.
   Map<String, dynamic> toMap() {
     return {
       'uid': uid,
@@ -30,12 +29,11 @@ class AppUser {
     };
   }
 
-  /// Deserializes a Firestore document into an AppUser instance.
-  factory AppUser.fromMap(Map<String, dynamic> data, String documentId) {
+  factory AuthUser.fromMap(Map<String, dynamic> data, String documentId) {
     final createdAtRaw = data['createdAt'];
     final lastLoginRaw = data['lastLogin'];
 
-    return AppUser(
+    return AuthUser(
       uid: documentId,
       email: data['email'] as String?,
       role: data['role'] as String? ?? 'student',
