@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 
-// Existing debug/testing screens
-import '../features/storage/storage_test_screen.dart';
+// Firebase & backend debug screens
 import 'firebase_health_check.dart';
 import 'test_resource_backend.dart';
+import '../features/storage/storage_test_screen.dart';
+
+// UI (Phase 2)
+import '../features/resources/screens/resource_list_screen.dart';
+import '../features/resources/upload.dart';
+
+// Profile backend debug (Phase 3)
+import 'developer_tools_profile_test.dart';
 
 class DeveloperToolsScreen extends StatelessWidget {
   const DeveloperToolsScreen({super.key});
@@ -17,7 +24,7 @@ class DeveloperToolsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          // Firebase tools
+          //  Firebase
           _sectionHeader("Firebase"),
           _navTile(
             context,
@@ -29,7 +36,7 @@ class DeveloperToolsScreen extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          // Storage tests
+          //  Storage
           _sectionHeader("Storage"),
           _navTile(
             context,
@@ -41,19 +48,50 @@ class DeveloperToolsScreen extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          // Resource backend tests
+          //  Resource backend
           _sectionHeader("Resource Backend"),
           _navTile(
             context,
             title: "Resource Backend Test",
-            subtitle: "CRUD + counters + queries",
+            subtitle: "CRUD + counters",
             icon: Icons.folder,
             child: const ResourceBackendTestScreen(),
           ),
 
           const SizedBox(height: 8),
 
-          // Coming soon sections (disabled)
+          //  Static UI (Phase 2)
+          _sectionHeader("UI Screens (Static)"),
+          _navTile(
+            context,
+            title: "Resource List Screen",
+            subtitle: "Static UI (Phase 2)",
+            icon: Icons.list,
+            child: const ResourceListScreen(),
+          ),
+          _navTile(
+            context,
+            title: "Upload Resource Screen",
+            subtitle: "Static UI (Phase 2)",
+            icon: Icons.upload,
+            child: const UploadScreen(),
+          ),
+
+          const SizedBox(height: 8),
+
+          //  Profile backend (Phase 3)
+          _sectionHeader("Profile Backend"),
+          _navTile(
+            context,
+            title: "Profile Backend Test",
+            subtitle: "Firestore + Storage + Stream",
+            icon: Icons.person,
+            child: const DeveloperToolsProfileTest(),
+          ),
+
+          const SizedBox(height: 8),
+
+          //  Coming soon
           _sectionHeader("Events"),
           _disabledTile(
             title: "Event Module Testing",
@@ -90,7 +128,8 @@ class DeveloperToolsScreen extends StatelessWidget {
     );
   }
 
-  // Section title
+  // ================= helpers =================
+
   Widget _sectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(top: 16, bottom: 6),
@@ -105,7 +144,6 @@ class DeveloperToolsScreen extends StatelessWidget {
     );
   }
 
-  // Navigation tile
   Widget _navTile(
       BuildContext context, {
         required String title,
@@ -129,7 +167,6 @@ class DeveloperToolsScreen extends StatelessWidget {
     );
   }
 
-  // Disabled tile for future modules
   Widget _disabledTile({
     required String title,
     required String subtitle,
@@ -146,7 +183,6 @@ class DeveloperToolsScreen extends StatelessWidget {
     );
   }
 
-  // Generic info tile
   Widget _infoTile(String title, String value) {
     return Card(
       child: ListTile(
@@ -156,7 +192,6 @@ class DeveloperToolsScreen extends StatelessWidget {
     );
   }
 
-  // Determines build mode
   String _buildMode() {
     const isRelease = bool.fromEnvironment('dart.vm.product');
     if (isRelease) return "Release";

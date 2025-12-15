@@ -3,10 +3,8 @@ import 'package:firebase_storage/firebase_storage.dart';
 
 /// Firebase Storage wrapper for file uploads and deletions.
 class StorageService {
-  /// Instance bound to the project's storage bucket.
-  final FirebaseStorage _storage = FirebaseStorage.instanceFor(
-    bucket: "gs://campusbuddy-sentinel.firebasestorage.app",
-  );
+  /// Default Firebase Storage instance (uses firebase_options.dart)
+  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   FirebaseStorage get storage => _storage;
 
@@ -57,7 +55,6 @@ class StorageService {
   }
 
   /// Deletes a file at the given storage path.
-  /// Returns true if deletion succeeds, otherwise false.
   Future<bool> deleteFile(String path) async {
     try {
       await _storage.ref(path).delete();
