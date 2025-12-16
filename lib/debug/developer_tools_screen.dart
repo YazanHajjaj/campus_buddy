@@ -12,6 +12,9 @@ import '../features/resources/upload.dart';
 // Profile backend debug (Phase 3)
 import 'developer_tools_profile_test.dart';
 
+// Events backend debug (Phase 4)
+import 'developer_tools_events_test.dart';
+
 class DeveloperToolsScreen extends StatelessWidget {
   const DeveloperToolsScreen({super.key});
 
@@ -91,12 +94,14 @@ class DeveloperToolsScreen extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          //  Coming soon
-          _sectionHeader("Events"),
-          _disabledTile(
-            title: "Event Module Testing",
-            subtitle: "Coming in Phase 4",
+          //  Events backend (Phase 4)
+          _sectionHeader("Events Backend"),
+          _navTile(
+            context,
+            title: "Event Backend Test",
+            subtitle: "Create, RSVP, stream, capacity",
             icon: Icons.event,
+            child: const DeveloperToolsEventsTest(),
           ),
 
           const SizedBox(height: 8),
