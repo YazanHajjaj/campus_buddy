@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 // Firebase & backend debug screens
 import 'firebase_health_check.dart';
 import 'test_resource_backend.dart';
-import '../features/storage/storage_test_screen.dart';
+import 'storage_test_screen.dart';
 
 // UI (Phase 2)
 import '../features/resources/screens/resource_list_screen.dart';
-import '../features/resources/upload.dart';
+import '../features/resources/screens/resource_upload_screen.dart';
 
 // Profile backend debug (Phase 3)
 import 'developer_tools_profile_test.dart';

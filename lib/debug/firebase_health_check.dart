@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:campus_buddy/features/storage/storage_test_screen.dart';
+import 'package:campus_buddy/debug/storage_test_screen.dart';
 
 /// Lightweight diagnostics screen for validating Firebase functionality.
 class FirebaseHealthCheckScreen extends StatefulWidget {
