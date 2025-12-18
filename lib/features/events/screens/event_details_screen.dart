@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/event.dart';
-import '../services/event_firestore_service.dart';
-
-// shows one event
-// minimal UI, full logic
-class EventDetailsScreen extends StatefulWidget {
+class EventDetailsScreen extends StatelessWidget {
   final String eventId;
 
   const EventDetailsScreen({
@@ -14,94 +9,120 @@ class EventDetailsScreen extends StatefulWidget {
   });
 
   @override
-  State<EventDetailsScreen> createState() => _EventDetailsScreenState();
+  Widget build(BuildContext context) {
+    // TEMP UI ONLY
+    // Later: use eventId to fetch data from Firestore
+
+    const title = "Robotics Club Meetup";
+    const description =
+        "Join us for a discussion about upcoming competitions and tasks.";
+    const location = "Engineering Building - Room 305";
+    const date = "Dec 20, 2025";
+    const time = "18:00 - 20:00";
+    const capacity = 40;
+    const attending = 17;
+    const tags = ["Robotics", "Workshop", "Campus"];
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Event Details"),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Container(
+            height: 180,
+            decoration: BoxDecoration(
+              color: Colors.black12,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Center(
+              child: Icon(Icons.image, size: 48),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          Text(title, style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 8),
+
+          Text(description),
+          const SizedBox(height: 16),
+
+          _InfoRow(icon: Icons.place, label: "Location", value: location),
+          const SizedBox(height: 8),
+          _InfoRow(icon: Icons.calendar_today, label: "Date", value: date),
+          const SizedBox(height: 8),
+          _InfoRow(icon: Icons.schedule, label: "Time", value: time),
+
+          const SizedBox(height: 16),
+
+          Wrap(
+            spacing: 8,
+            children: tags.map((t) => Chip(label: Text(t))).toList(),
+          ),
+
+          const SizedBox(height: 16),
+
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Capacity"),
+                  const SizedBox(height: 8),
+                  Text("$attending / $capacity attending"),
+                  const SizedBox(height: 6),
+                  LinearProgressIndicator(value: attending / capacity),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          FilledButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("RSVP clicked (UI only)"),
+                ),
+              );
+            },
+            child: const Text("RSVP"),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _EventDetailsScreenState extends State<EventDetailsScreen> {
-  final _eventService = EventFirestoreService();
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
 
-  // TEMP: replace with auth uid later
-  final String _dummyUid = 'test-user';
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Event Details')),
-      body: StreamBuilder<Event?>(
-        stream: _eventService.watchEventById(widget.eventId),
-        builder: (context, snapshot) {
-          // loading
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          // error / missing
-          if (!snapshot.hasData || snapshot.data == null) {
-            return const Center(child: Text('Event not found'));
-          }
-
-          final event = snapshot.data!;
-
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // title
-                Text(
-                  event.title,
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-
-                const SizedBox(height: 8),
-
-                // date & location
-                Text('${event.location} • ${event.startTime}'),
-
-                const SizedBox(height: 16),
-
-                // description
-                Text(event.description),
-
-                const Spacer(),
-
-                // rsvp button
-                FutureBuilder<bool>(
-                  future: _eventService.hasUserRsvped(
-                    eventId: event.id,
-                    uid: _dummyUid,
-                  ),
-                  builder: (context, rsvpSnap) {
-                    final hasRsvped = rsvpSnap.data == true;
-
-                    return SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          if (hasRsvped) {
-                            await _eventService.cancelRsvp(
-                              eventId: event.id,
-                              uid: _dummyUid,
-                            );
-                          } else {
-                            await _eventService.rsvpToEvent(
-                              eventId: event.id,
-                              uid: _dummyUid,
-                            );
-                          }
-                        },
-                        child: Text(
-                          hasRsvped ? 'Cancel RSVP' : 'RSVP',
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+    return Row(
+      children: [
+        Icon(icon, size: 18),
+        const SizedBox(width: 10),
+        SizedBox(
+          width: 80,
+          child: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ),
+        Expanded(child: Text(value)),
+      ],
     );
   }
 }

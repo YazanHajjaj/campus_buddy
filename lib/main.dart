@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+
 
 import 'firebase_options.dart';
 
@@ -11,10 +12,15 @@ import 'debug/developer_tools_screen.dart';
 import 'core/auth/sign_in_screen.dart';
 import 'core/services/auth_service.dart';
 
+// Profile
+import 'features/profile/edit_profile_screen.dart';
+
+// Events
+import 'features/events/screens/event_create_screen.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -35,17 +41,16 @@ class CampusBuddyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Campus Buddy',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: Colors.blue,
       ),
       home: const AuthGate(),
-      debugShowCheckedModeBanner: false,
     );
   }
 }
 
-/// Selects initial screen based on FirebaseAuth state.
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -70,7 +75,6 @@ class AuthGate extends StatelessWidget {
   }
 }
 
-/// Home screen with user info and access to Developer Tools.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -105,14 +109,26 @@ class HomeScreen extends StatelessWidget {
                 child: Text("Sign Out"),
               ),
             ],
-          )
+          ),
         ],
       ),
-
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            ElevatedButton.icon(
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const EventCreateScreen(),
+      ),
+    );
+  },
+  icon: const Icon(Icons.add),
+  label: const Text("Create Event"),
+),
+
             const Icon(Icons.verified_user, size: 60),
             const SizedBox(height: 16),
             Text(
@@ -129,8 +145,50 @@ class HomeScreen extends StatelessWidget {
               "Anonymous User: ${user?.isAnonymous}",
               style: const TextStyle(color: Colors.grey),
             ),
+            const SizedBox(height: 24),
+
+            // Edit Profile
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const EditProfileScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.edit),
+              label: const Text("Edit Profile"),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Create Event (Phase 4)
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const EventCreateScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.add),
+              label: const Text("Create Event"),
+            ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const EditProfileScreen(),
+            ),
+          );
+        },
+        child: const Icon(Icons.edit),
       ),
     );
   }
