@@ -120,13 +120,13 @@ class Resource {
 
   /// Constructs a Resource object from a Firestore map.
   factory Resource.fromMap(Map<String, dynamic> data, {String? documentId}) {
-    DateTime _toDate(dynamic v) {
+    DateTime toDate(dynamic v) {
       if (v is Timestamp) return v.toDate();
       if (v is DateTime) return v;
       return DateTime.now();
     }
 
-    DateTime? _toDateNullable(dynamic v) {
+    DateTime? toDateNullable(dynamic v) {
       if (v is Timestamp) return v.toDate();
       if (v is DateTime) return v;
       return null;
@@ -151,9 +151,9 @@ class Resource {
       isPublic: data['isPublic'] as bool? ?? true,
       downloadCount: (data['downloadCount'] as num?)?.toInt() ?? 0,
       viewCount: (data['viewCount'] as num?)?.toInt() ?? 0,
-      createdAt: _toDate(data['createdAt']),
-      updatedAt: _toDate(data['updatedAt']),
-      lastAccessedAt: _toDateNullable(data['lastAccessedAt']),
+      createdAt: toDate(data['createdAt']),
+      updatedAt: toDate(data['updatedAt']),
+      lastAccessedAt: toDateNullable(data['lastAccessedAt']),
     );
   }
 
