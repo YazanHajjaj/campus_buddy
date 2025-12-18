@@ -1,3 +1,9 @@
+// Phase 4 — Events Module
+// UI screen for creating events
+// Backend exists and is tested separately
+// This screen is currently wired as UI-only by choice
+
+
 import 'package:flutter/material.dart';
 import 'event_details_screen.dart';
 
@@ -24,6 +30,7 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
   final Set<String> _selectedTags = {};
 
   String? _bannerName; // UI only (fake upload)
+  bool _submitted = false;
 
   @override
   void dispose() {
@@ -42,7 +49,9 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
       lastDate: DateTime(now.year + 2),
       initialDate: _selectedDate ?? now,
     );
-    if (picked != null) setState(() => _selectedDate = picked);
+    if (picked != null && mounted) {
+      setState(() => _selectedDate = picked);
+    }
   }
 
   Future<void> _pickStartTime() async {
@@ -50,7 +59,9 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
       context: context,
       initialTime: _startTime ?? TimeOfDay.now(),
     );
-    if (picked != null) setState(() => _startTime = picked);
+    if (picked != null && mounted) {
+      setState(() => _startTime = picked);
+    }
   }
 
   Future<void> _pickEndTime() async {
@@ -58,10 +69,13 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
       context: context,
       initialTime: _endTime ?? TimeOfDay.now(),
     );
-    if (picked != null) setState(() => _endTime = picked);
+    if (picked != null && mounted) {
+      setState(() => _endTime = picked);
+    }
   }
 
   void _fakeUploadBanner() {
+    if (!mounted) return;
     setState(() => _bannerName = "event_banner.png");
   }
 
@@ -87,6 +101,8 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
   }
 
   void _createEventUIOnly() {
+    if (_submitted) return;
+
     final valid = _formKey.currentState?.validate() ?? false;
     if (!valid) return;
 
@@ -108,13 +124,14 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
       return;
     }
 
+    setState(() => _submitted = true);
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text("Create Event clicked (UI only). Waiting for backend."),
+        content: Text("Create Event (UI demo). Backend wiring comes next."),
       ),
     );
 
-    // OPTIONAL: go to details screen after creating (UI only)
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -165,7 +182,7 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
                   border: OutlineInputBorder(),
                 ),
                 validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? "Title is required" : null,
+                (v == null || v.trim().isEmpty) ? "Title is required" : null,
               ),
               const SizedBox(height: 12),
 
@@ -175,9 +192,8 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
                   labelText: "Location",
                   border: OutlineInputBorder(),
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? "Location is required"
-                    : null,
+                validator: (v) =>
+                (v == null || v.trim().isEmpty) ? "Location is required" : null,
               ),
               const SizedBox(height: 12),
 
@@ -202,9 +218,13 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
                   border: OutlineInputBorder(),
                 ),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) return "Capacity is required";
+                  if (v == null || v.trim().isEmpty) {
+                    return "Capacity is required";
+                  }
                   final n = int.tryParse(v.trim());
-                  if (n == null || n <= 0) return "Enter a valid number";
+                  if (n == null || n <= 0) {
+                    return "Enter a valid number";
+                  }
                   return null;
                 },
               ),
@@ -239,7 +259,10 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
               const SizedBox(height: 16),
 
               // Tags
-              Text("Tags", style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                "Tags",
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -250,6 +273,7 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
                     label: Text(t),
                     selected: selected,
                     onSelected: (v) {
+                      if (!mounted) return;
                       setState(() {
                         if (v) {
                           _selectedTags.add(t);
@@ -265,7 +289,7 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
               const SizedBox(height: 24),
 
               FilledButton.icon(
-                onPressed: _createEventUIOnly,
+                onPressed: _submitted ? null : _createEventUIOnly,
                 icon: const Icon(Icons.add),
                 label: const Text("Create Event (UI only)"),
               ),

@@ -3,8 +3,8 @@ import 'dart:io';
 import '../models/app_user.dart';
 import '../services/profile_service.dart';
 
-/// A simple controller for profile actions.
-/// The UI will use this instead of calling service methods directly.
+/// Controller for profile-related actions.
+/// UI talks to this layer only.
 class ProfileController {
   final ProfileService service;
 
@@ -20,7 +20,8 @@ class ProfileController {
     return service.getUserProfile(uid);
   }
 
-  /// Update fields like name, bio, department, etc.
+  /// Update basic profile fields.
+  /// Any update here MUST reflect in live listeners.
   Future<void> updateProfile(
       String uid, {
         String? name,
@@ -33,18 +34,31 @@ class ProfileController {
     if (bio != null) data['bio'] = bio;
     if (department != null) data['department'] = department;
 
-    if (data.isEmpty) return; // nothing to update
+    if (data.isEmpty) return;
 
     await service.updateUserProfile(uid, data);
   }
 
-  /// Upload or replace profile image.
-  Future<String> uploadImage(String uid, File file) {
-    return service.uploadProfileImage(uid, file);
+  /// Upload profile image AND save its URL to Firestore.
+  /// This ensures Live Listen updates immediately.
+  Future<String?> uploadImage(String uid, File file) async {
+    final imageUrl = await service.uploadProfileImage(uid, file);
+
+    if (imageUrl == null) return null;
+
+    await service.updateUserProfile(uid, {
+      'profileImageUrl': imageUrl,
+    });
+
+    return imageUrl;
   }
 
-  /// Remove user avatar.
-  Future<void> deleteImage(String uid) {
-    return service.deleteProfileImage(uid);
+  /// Delete profile image from storage AND clear Firestore field.
+  Future<void> deleteImage(String uid) async {
+    await service.deleteProfileImage(uid);
+
+    await service.updateUserProfile(uid, {
+      'profileImageUrl': null,
+    });
   }
 }

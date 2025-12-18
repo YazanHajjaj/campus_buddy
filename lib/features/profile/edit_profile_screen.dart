@@ -1,5 +1,20 @@
-import 'package:flutter/material.dart';
+import 'dart:io';
 
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
+import 'package:campus_buddy/core/services/auth_service.dart';
+import 'package:campus_buddy/features/profile/controllers/profile_controller.dart';
+import 'package:campus_buddy/features/profile/services/profile_storage_service.dart';
+
+/// PHASE 3 — PROFILE MODULE (UI + BASIC INTEGRATION)
+/// This screen allows the user to edit their profile information.
+/// Backend persistence is handled via ProfileController.
+///
+/// Notes:
+/// - Profile image is selected from device (gallery or camera)
+/// - Bio has NO artificial character limit
+/// - Year of study represents academic year (1st, 2nd, 3rd, etc.)
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
 
@@ -13,39 +28,106 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _nameController = TextEditingController();
   final _bioController = TextEditingController();
   final _departmentController = TextEditingController();
-  final _yearController = TextEditingController();
 
-  String? _selectedImageName; // fake image name for now
+  int? _yearOfStudy;
+  File? _selectedImage;
+
+  final ImagePicker _picker = ImagePicker();
+
+  final AuthService _authService = AuthService();
+  late final ProfileController _controller =
+  ProfileController(service: ProfileStorageService());
 
   @override
   void dispose() {
     _nameController.dispose();
     _bioController.dispose();
     _departmentController.dispose();
-    _yearController.dispose();
     super.dispose();
   }
 
-  void _pickFakeImage() {
-    // Phase 3: UI only – no real image picker
+  // ---------------------------------------------------------------------------
+  // IMAGE PICKING
+  // ---------------------------------------------------------------------------
+
+  Future<void> _pickImage(ImageSource source) async {
+    final picked = await _picker.pickImage(
+      source: source,
+      imageQuality: 80,
+    );
+
+    if (picked == null) return;
+
     setState(() {
-      _selectedImageName = 'profile_photo.png';
+      _selectedImage = File(picked.path);
     });
   }
 
-  void _onSavePressed() {
+  void _showImageSourceSheet() {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Choose from gallery'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Take a photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // SAVE ACTION (REAL BACKEND WRITE)
+  // ---------------------------------------------------------------------------
+
+  Future<void> _onSavePressed() async {
     final isValid = _formKey.currentState?.validate() ?? false;
     if (!isValid) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Profile saved (UI only, Phase 3).'),
-      ),
+    final uid = _authService.currentUser?.uid;
+    if (uid == null) return;
+
+    await _controller.updateProfile(
+      uid,
+      name: _nameController.text.trim(),
+      bio: _bioController.text.trim(),
+      department: _departmentController.text.trim(),
     );
 
-    // For now we just go back
+    if (_selectedImage != null) {
+      await _controller.uploadImage(uid, _selectedImage!);
+    }
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Profile updated')),
+    );
+
     Navigator.pop(context);
   }
+
+  // ---------------------------------------------------------------------------
+  // UI
+  // ---------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -61,30 +143,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // avatar + pick image button
                 Center(
                   child: Column(
                     children: [
                       CircleAvatar(
-                        radius: 40,
-                        child: const Icon(Icons.person, size: 40),
+                        radius: 48,
+                        backgroundImage:
+                        _selectedImage != null ? FileImage(_selectedImage!) : null,
+                        child: _selectedImage == null
+                            ? const Icon(Icons.person, size: 48)
+                            : null,
                       ),
                       const SizedBox(height: 8),
                       TextButton.icon(
-                        onPressed: _pickFakeImage,
-                        icon: const Icon(Icons.photo),
-                        label: Text(
-                          _selectedImageName == null
-                              ? 'Choose photo'
-                              : 'Selected: $_selectedImageName',
-                        ),
+                        onPressed: _showImageSourceSheet,
+                        icon: const Icon(Icons.photo_camera),
+                        label: const Text('Change profile photo'),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 24),
 
-                // Name
                 TextFormField(
                   controller: _nameController,
                   decoration: const InputDecoration(
@@ -103,28 +183,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Bio
                 TextFormField(
                   controller: _bioController,
                   decoration: const InputDecoration(
                     labelText: 'Bio',
-                    hintText: 'Short description about you',
                     border: OutlineInputBorder(),
                   ),
-                  maxLines: 3,
+                  maxLines: 4,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Bio is required';
-                    }
-                    if (value.trim().length < 10) {
-                      return 'Bio must be at least 10 characters';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
 
-                // Department
                 TextFormField(
                   controller: _departmentController,
                   decoration: const InputDecoration(
@@ -140,21 +214,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Year of study
-                TextFormField(
-                  controller: _yearController,
+                DropdownButtonFormField<int>(
+                  value: _yearOfStudy,
                   decoration: const InputDecoration(
                     labelText: 'Year of study',
                     border: OutlineInputBorder(),
                   ),
-                  keyboardType: TextInputType.number,
+                  items: const [
+                    DropdownMenuItem(value: 1, child: Text('1st Year')),
+                    DropdownMenuItem(value: 2, child: Text('2nd Year')),
+                    DropdownMenuItem(value: 3, child: Text('3rd Year')),
+                    DropdownMenuItem(value: 4, child: Text('4th Year')),
+                    DropdownMenuItem(value: 5, child: Text('5th Year or above')),
+                  ],
+                  onChanged: (v) => setState(() => _yearOfStudy = v),
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Year is required';
-                    }
-                    final year = int.tryParse(value);
-                    if (year == null || year < 1 || year > 5) {
-                      return 'Enter a valid year (1–5)';
+                    if (value == null) {
+                      return 'Please select your year of study';
                     }
                     return null;
                   },

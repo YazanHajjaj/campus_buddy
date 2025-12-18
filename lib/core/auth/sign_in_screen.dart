@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 
+/// PHASE 1 — AUTHENTICATION
+/// Sign-in screen for anonymous and email/password auth.
+/// This screen handles UI + validation only.
+/// Navigation is controlled by AuthGate.
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
 
@@ -9,16 +13,20 @@ class SignInScreen extends StatefulWidget {
 }
 
 class _SignInScreenState extends State<SignInScreen> {
-  final TextEditingController _email = TextEditingController();
-  final TextEditingController _password = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   final AuthService _authService = AuthService();
 
   bool _loading = false;
   String? _error;
 
-  /// Executes an auth action and manages loading/error state.
+  // ---------------------------------------------------------------------------
+  // AUTH EXECUTION WRAPPER
+  // ---------------------------------------------------------------------------
+
+  /// Runs an auth action while managing loading + error state.
   Future<void> _run(Future<void> Function() action) async {
     setState(() {
       _loading = true;
@@ -28,25 +36,32 @@ class _SignInScreenState extends State<SignInScreen> {
     try {
       await action();
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() {
+        _error = e.toString();
+      });
     } finally {
-      if (mounted) {
-        setState(() => _loading = false);
-      }
+      if (!mounted) return;
+      setState(() => _loading = false);
     }
   }
 
   @override
   void dispose() {
-    _email.dispose();
-    _password.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
+
+  // ---------------------------------------------------------------------------
+  // UI
+  // ---------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Sign In")),
+      appBar: AppBar(
+        title: const Text('Sign In'),
+      ),
       body: Stack(
         children: [
           ListView(
@@ -55,40 +70,52 @@ class _SignInScreenState extends State<SignInScreen> {
               const SizedBox(height: 40),
               const Icon(Icons.school, size: 60),
               const SizedBox(height: 20),
+
               Text(
-                "Campus Buddy Authentication",
+                'Campus Buddy Authentication',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
+
               const SizedBox(height: 40),
 
-              // Anonymous sign-in
+              // ----------------------------------------------------------------
+              // ANONYMOUS SIGN-IN (DEV + FALLBACK)
+              // ----------------------------------------------------------------
               FilledButton(
                 onPressed: _loading
                     ? null
-                    : () => _run(() => _authService.signInAnonymously()),
-                child: const Text("Sign In Anonymously"),
+                    : () => _run(
+                      () => _authService.signInAnonymously(),
+                ),
+                child: const Text('Continue as Guest'),
               ),
 
               const SizedBox(height: 30),
               const Divider(),
               const SizedBox(height: 30),
 
-              // Email/Password form
+              // ----------------------------------------------------------------
+              // EMAIL / PASSWORD FORM
+              // ----------------------------------------------------------------
               Form(
                 key: _formKey,
                 child: Column(
                   children: [
                     TextFormField(
-                      controller: _email,
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(
-                        labelText: "Email",
+                        labelText: 'Email',
                         prefixIcon: Icon(Icons.email),
                         border: OutlineInputBorder(),
                       ),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) {
-                          return "Enter email";
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Email is required';
+                        }
+                        if (!value.contains('@')) {
+                          return 'Enter a valid email';
                         }
                         return null;
                       },
@@ -96,16 +123,19 @@ class _SignInScreenState extends State<SignInScreen> {
                     const SizedBox(height: 20),
 
                     TextFormField(
-                      controller: _password,
+                      controller: _passwordController,
                       obscureText: true,
                       decoration: const InputDecoration(
-                        labelText: "Password",
+                        labelText: 'Password',
                         prefixIcon: Icon(Icons.lock),
                         border: OutlineInputBorder(),
                       ),
-                      validator: (v) {
-                        if (v == null || v.length < 6) {
-                          return "Min 6 characters";
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Password is required';
+                        }
+                        if (value.length < 6) {
+                          return 'Minimum 6 characters';
                         }
                         return null;
                       },
@@ -116,6 +146,9 @@ class _SignInScreenState extends State<SignInScreen> {
 
               const SizedBox(height: 20),
 
+              // ----------------------------------------------------------------
+              // ERROR DISPLAY
+              // ----------------------------------------------------------------
               if (_error != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -128,6 +161,9 @@ class _SignInScreenState extends State<SignInScreen> {
 
               const SizedBox(height: 20),
 
+              // ----------------------------------------------------------------
+              // ACTION BUTTONS
+              // ----------------------------------------------------------------
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -136,12 +172,16 @@ class _SignInScreenState extends State<SignInScreen> {
                         ? null
                         : () {
                       if (!_formKey.currentState!.validate()) return;
-                      _run(() => _authService.signInWithEmailAndPassword(
-                        email: _email.text.trim(),
-                        password: _password.text.trim(),
-                      ));
+
+                      _run(
+                            () => _authService.signInWithEmailAndPassword(
+                          email: _emailController.text.trim(),
+                          password:
+                          _passwordController.text.trim(),
+                        ),
+                      );
                     },
-                    child: const Text("Sign In"),
+                    child: const Text('Sign In'),
                   ),
 
                   const SizedBox(width: 20),
@@ -151,12 +191,17 @@ class _SignInScreenState extends State<SignInScreen> {
                         ? null
                         : () {
                       if (!_formKey.currentState!.validate()) return;
-                      _run(() => _authService.registerWithEmailAndPassword(
-                        email: _email.text.trim(),
-                        password: _password.text.trim(),
-                      ));
+
+                      _run(
+                            () => _authService
+                            .registerWithEmailAndPassword(
+                          email: _emailController.text.trim(),
+                          password:
+                          _passwordController.text.trim(),
+                        ),
+                      );
                     },
-                    child: const Text("Register"),
+                    child: const Text('Register'),
                   ),
                 ],
               ),
@@ -165,8 +210,11 @@ class _SignInScreenState extends State<SignInScreen> {
             ],
           ),
 
+          // --------------------------------------------------------------------
+          // LOADING INDICATOR
+          // --------------------------------------------------------------------
           if (_loading)
-            const LinearProgressIndicator(minHeight: 5),
+            const LinearProgressIndicator(minHeight: 4),
         ],
       ),
     );

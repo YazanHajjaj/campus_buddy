@@ -1,17 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Data model for a resource stored in Firestore.
+/// Firestore data model for uploaded resources.
+/// Used in Phase 2 (Resources backend).
 class Resource {
-  final String id;                // Firestore doc ID
+  final String id;                // Firestore document ID
   final String title;             // Resource title
   final String description;       // Short description
-  final String fileUrl;           // Public storage URL
+  final String fileUrl;           // Public download URL
   final String storagePath;       // Firebase Storage path
   final String uploaderUserId;    // UID of uploader
   final String? uploaderDisplayName;
   final String? courseCode;       // Optional course code
   final String? semester;         // Optional semester
-  final List<String> tags;        // Lowercase tags used for filtering
+  final List<String> tags;        // Lowercase tags for filtering
   final int sizeInBytes;          // File size
   final String mimeType;          // MIME type
   final bool isActive;            // Soft delete flag
@@ -44,7 +45,7 @@ class Resource {
     this.lastAccessedAt,
   });
 
-  /// Creates a new instance with modified fields.
+  /// Returns a copy with selected fields replaced.
   Resource copyWith({
     String? id,
     String? title,
@@ -89,7 +90,7 @@ class Resource {
     );
   }
 
-  /// Converts the object into a Firestore map.
+  /// Converts this model into a Firestore-compatible map.
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -110,23 +111,26 @@ class Resource {
       'viewCount': viewCount,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
-      'lastAccessedAt': lastAccessedAt != null
-          ? Timestamp.fromDate(lastAccessedAt!)
-          : null,
+      'lastAccessedAt':
+      lastAccessedAt != null ? Timestamp.fromDate(lastAccessedAt!) : null,
     };
   }
 
   Map<String, dynamic> toJson() => toMap();
 
-  /// Constructs a Resource object from a Firestore map.
-  factory Resource.fromMap(Map<String, dynamic> data, {String? documentId}) {
-    DateTime toDate(dynamic v) {
+  /// Builds a Resource from a Firestore map.
+  factory Resource.fromMap(
+      Map<String, dynamic> data, {
+        String? documentId,
+      }) {
+    DateTime _toDate(dynamic v) {
       if (v is Timestamp) return v.toDate();
       if (v is DateTime) return v;
+      // Defensive fallback for corrupted / missing data
       return DateTime.now();
     }
 
-    DateTime? toDateNullable(dynamic v) {
+    DateTime? _toDateNullable(dynamic v) {
       if (v is Timestamp) return v.toDate();
       if (v is DateTime) return v;
       return null;
@@ -144,24 +148,26 @@ class Resource {
       uploaderDisplayName: data['uploaderDisplayName'] as String?,
       courseCode: data['courseCode'] as String?,
       semester: data['semester'] as String?,
-      tags: rawTags.map((e) => e.toString()).toList(),
+      tags: rawTags.map((e) => e.toString().toLowerCase()).toList(),
       sizeInBytes: (data['sizeInBytes'] as num?)?.toInt() ?? 0,
       mimeType: data['mimeType'] as String? ?? '',
       isActive: data['isActive'] as bool? ?? true,
       isPublic: data['isPublic'] as bool? ?? true,
       downloadCount: (data['downloadCount'] as num?)?.toInt() ?? 0,
       viewCount: (data['viewCount'] as num?)?.toInt() ?? 0,
-      createdAt: toDate(data['createdAt']),
-      updatedAt: toDate(data['updatedAt']),
-      lastAccessedAt: toDateNullable(data['lastAccessedAt']),
+      createdAt: _toDate(data['createdAt']),
+      updatedAt: _toDate(data['updatedAt']),
+      lastAccessedAt: _toDateNullable(data['lastAccessedAt']),
     );
   }
 
-  /// Constructs a Resource from a Firestore document snapshot.
+  /// Builds a Resource from a Firestore document snapshot.
   factory Resource.fromDocument(
       DocumentSnapshot<Map<String, dynamic>> doc,
       ) {
     final data = doc.data();
+
+    // Defensive empty object for deleted or corrupted docs
     if (data == null) {
       return Resource(
         id: doc.id,
@@ -182,6 +188,7 @@ class Resource {
         lastAccessedAt: null,
       );
     }
+
     return Resource.fromMap(data, documentId: doc.id);
   }
 }
