@@ -20,19 +20,29 @@ class ProfileController {
     return service.getUserProfile(uid);
   }
 
-  /// Update basic profile fields.
+  /// Update profile fields.
   /// Any update here MUST reflect in live listeners.
   Future<void> updateProfile(
-      String uid, {
-        String? name,
-        String? bio,
-        String? department,
-      }) async {
+    String uid, {
+    String? name,
+    String? bio,
+    String? department,
+    String? email,
+    String? phone,
+    String? section,
+    String? year,
+  }) async {
     final data = <String, dynamic>{};
 
     if (name != null) data['name'] = name;
     if (bio != null) data['bio'] = bio;
     if (department != null) data['department'] = department;
+
+    // extra fields you may want to store in Firestore
+    if (email != null) data['email'] = email;
+    if (phone != null) data['phone'] = phone;
+    if (section != null) data['section'] = section;
+    if (year != null) data['year'] = year;
 
     if (data.isEmpty) return;
 
