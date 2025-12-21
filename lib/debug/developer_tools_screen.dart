@@ -18,6 +18,9 @@ import 'developer_tools_events_test.dart';
 // Mentorship backend debug (Phase 5)
 import 'developer_tools_mentorship_test.dart';
 
+// Analytics backend debug (Phase 8)
+import 'developer_tools_analytics_test.dart';
+
 class DeveloperToolsScreen extends StatelessWidget {
   const DeveloperToolsScreen({super.key});
 
@@ -117,6 +120,18 @@ class DeveloperToolsScreen extends StatelessWidget {
             subtitle: "Profiles, requests, sessions, chat, groups",
             icon: Icons.people,
             child: const DeveloperToolsMentorshipTest(),
+          ),
+
+          const SizedBox(height: 8),
+
+          // Analytics backend (Phase 8)
+          _sectionHeader("Analytics Backend"),
+          _navTile(
+            context,
+            title: "Analytics Backend Test",
+            subtitle: "Student stats, admin stats, exports",
+            icon: Icons.analytics,
+            child: const DeveloperToolsAnalyticsTest(),
           ),
 
           const SizedBox(height: 8),
