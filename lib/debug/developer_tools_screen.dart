@@ -15,6 +15,9 @@ import 'developer_tools_profile_test.dart';
 // Events backend debug (Phase 4)
 import 'developer_tools_events_test.dart';
 
+// Mentorship backend debug (Phase 5)
+import 'developer_tools_mentorship_test.dart';
+
 class DeveloperToolsScreen extends StatelessWidget {
   const DeveloperToolsScreen({super.key});
 
@@ -27,7 +30,7 @@ class DeveloperToolsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          //  Firebase
+          // Firebase
           _sectionHeader("Firebase"),
           _navTile(
             context,
@@ -39,7 +42,7 @@ class DeveloperToolsScreen extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          //  Storage
+          // Storage
           _sectionHeader("Storage"),
           _navTile(
             context,
@@ -51,7 +54,7 @@ class DeveloperToolsScreen extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          //  Resource backend
+          // Resource backend
           _sectionHeader("Resource Backend"),
           _navTile(
             context,
@@ -63,7 +66,7 @@ class DeveloperToolsScreen extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          //  Static UI (Phase 2)
+          // Static UI (Phase 2)
           _sectionHeader("UI Screens (Static)"),
           _navTile(
             context,
@@ -82,7 +85,7 @@ class DeveloperToolsScreen extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          //  Profile backend (Phase 3)
+          // Profile backend (Phase 3)
           _sectionHeader("Profile Backend"),
           _navTile(
             context,
@@ -94,7 +97,7 @@ class DeveloperToolsScreen extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          //  Events backend (Phase 4)
+          // Events backend (Phase 4)
           _sectionHeader("Events Backend"),
           _navTile(
             context,
@@ -106,15 +109,19 @@ class DeveloperToolsScreen extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          _sectionHeader("Mentorship"),
-          _disabledTile(
-            title: "Mentorship Module Testing",
-            subtitle: "Coming in Phase 5",
+          // Mentorship backend (Phase 5)
+          _sectionHeader("Mentorship Backend"),
+          _navTile(
+            context,
+            title: "Mentorship Backend Test",
+            subtitle: "Profiles, requests, sessions, chat, groups",
             icon: Icons.people,
+            child: const DeveloperToolsMentorshipTest(),
           ),
 
           const SizedBox(height: 8),
 
+          // Notifications (future)
           _sectionHeader("Notifications"),
           _disabledTile(
             title: "Notifications Debugger",
