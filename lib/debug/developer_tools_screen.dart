@@ -140,7 +140,7 @@ class DeveloperToolsScreen extends StatelessWidget {
           _sectionHeader("Notifications"),
           _disabledTile(
             title: "Notifications Debugger",
-            subtitle: "Coming in Phase 9",
+            subtitle: "Coming in Phase 11",
             icon: Icons.notifications,
           ),
 
