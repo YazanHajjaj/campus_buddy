@@ -1,0 +1,70 @@
+{
+  "auth.signIn": "Sign In",
+  "auth.signUp": "Sign Up",
+  "auth.signOut": "Sign Out",
+  "auth.email": "Email",
+  "auth.password": "Password",
+  "auth.forgotPassword": "Forgot password?",
+
+  "common.save": "Save",
+  "common.cancel": "Cancel",
+  "common.delete": "Delete",
+  "common.confirm": "Confirm",
+  "common.loading": "Loading...",
+  "common.error": "Something went wrong",
+
+  "nav.home": "Home",
+  "nav.resources": "Resources",
+  "nav.events": "Events",
+  "nav.mentorship": "Mentorship",
+  "nav.profile": "Profile",
+  "nav.settings": "Settings",
+
+  "resources.title": "Resources",
+  "resources.upload": "Upload",
+  "resources.uploadFile": "Upload file",
+  "resources.description": "Description",
+  "resources.noItems": "No resources available",
+
+  "events.title": "Events",
+  "events.upcoming": "Upcoming events",
+  "events.create": "Create event",
+  "events.rsvp": "RSVP",
+  "events.capacityFull": "Event is full",
+
+  "mentorship.title": "Mentorship",
+  "mentorship.request": "Request mentorship",
+  "mentorship.accept": "Accept",
+  "mentorship.decline": "Decline",
+  "mentorship.chat": "Chat",
+
+  "studyGroups.title": "Study Groups",
+  "studyGroups.create": "Create group",
+  "studyGroups.join": "Join group",
+  "studyGroups.leave": "Leave group",
+
+  "profile.title": "Profile",
+  "profile.edit": "Edit profile",
+  "profile.email": "Email",
+  "profile.role": "Role",
+  "profile.saveChanges": "Save changes",
+
+  "notifications.title": "Notifications",
+  "notifications.settings": "Notification settings",
+  "notifications.enableEvents": "Event notifications",
+  "notifications.enableMentorship": "Mentorship notifications",
+  "notifications.enableStudyGroups": "Study group notifications",
+  "notifications.enableGamification": "Gamification notifications",
+
+  "gamification.title": "Achievements",
+  "gamification.levelUp": "Level up!",
+  "gamification.badgeUnlocked": "Badge unlocked",
+
+  "accessibility.title": "Accessibility",
+  "accessibility.textSize": "Text size",
+  "accessibility.highContrast": "High contrast mode",
+
+  "error.generic": "An unexpected error occurred",
+  "error.network": "Network error",
+  "error.unauthorized": "Unauthorized access"
+}
