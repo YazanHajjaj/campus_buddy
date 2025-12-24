@@ -21,6 +21,9 @@ import 'developer_tools_mentorship_test.dart';
 // Analytics backend debug (Phase 8)
 import 'developer_tools_analytics_test.dart';
 
+// Notifications debug (Phase 11)
+import 'developer_tools_notifications_test.dart';
+
 class DeveloperToolsScreen extends StatelessWidget {
   const DeveloperToolsScreen({super.key});
 
@@ -136,12 +139,14 @@ class DeveloperToolsScreen extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          // Notifications (future)
+          // Notifications (Phase 11)
           _sectionHeader("Notifications"),
-          _disabledTile(
-            title: "Notifications Debugger",
-            subtitle: "Coming in Phase 11",
+          _navTile(
+            context,
+            title: "Notifications Debug",
+            subtitle: "Payloads, routing, foreground handling",
             icon: Icons.notifications,
+            child: const DeveloperToolsNotificationsTest(),
           ),
 
           const SizedBox(height: 8),
@@ -190,22 +195,6 @@ class DeveloperToolsScreen extends StatelessWidget {
             MaterialPageRoute(builder: (_) => child),
           );
         },
-      ),
-    );
-  }
-
-  Widget _disabledTile({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-  }) {
-    return Card(
-      color: Colors.grey.shade300,
-      child: ListTile(
-        enabled: false,
-        leading: Icon(icon, color: Colors.grey),
-        title: Text(title, style: const TextStyle(color: Colors.grey)),
-        subtitle: Text(subtitle, style: const TextStyle(color: Colors.grey)),
       ),
     );
   }
