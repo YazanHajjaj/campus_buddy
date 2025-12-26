@@ -396,6 +396,8 @@ class _EditableRow extends StatelessWidget {
     this.keyboardType,
   });
 
+  get q => null;
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -428,8 +430,8 @@ class _EditableRow extends StatelessWidget {
                     TextButton(
                       onPressed: () {
                         controller.text = tmp.text;
-                        Navigator.pop(context);q
-                      },
+                        Navigator.pop(context);
+;                      },
                       child: const Text('OK'),
                     ),
                   ],
