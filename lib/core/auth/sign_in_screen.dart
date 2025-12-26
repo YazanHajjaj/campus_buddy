@@ -1,5 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:campus_buddy/core/services/auth_service.dart';
+import 'create_account_screen.dart';
+import 'forgot_password_screen.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -12,6 +18,7 @@ class _SignInScreenState extends State<SignInScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+
   bool _loading = false;
   bool _obscurePassword = true;
 
@@ -22,7 +29,9 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
-  Future<void> _onEmailContinue() async {
+  // ---------------- EMAIL SIGN IN ----------------
+
+  Future<void> _onSignIn() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _loading = true);
@@ -32,55 +41,69 @@ class _SignInScreenState extends State<SignInScreen> {
         email: _emailCtrl.text.trim(),
         password: _passwordCtrl.text.trim(),
       );
-      // Navigation is handled by authStateChanges listener elsewhere.
-    } catch (e) {
+    } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Email sign-in failed: $e')),
+        SnackBar(
+          content: Text(
+            e.code == 'invalid-credential' ||
+                e.code == 'wrong-password' ||
+                e.code == 'user-not-found'
+                ? 'Invalid email or password'
+                : e.message ?? 'Sign in failed',
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
+
+  // ---------------- GOOGLE ----------------
 
   Future<void> _onGoogle() async {
     setState(() => _loading = true);
     try {
       await AuthService().signInWithGoogle();
-    } catch (e) {
+    } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Google sign-in failed: $e')),
+        const SnackBar(content: Text('Google sign-in failed')),
       );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
+
+  // ---------------- APPLE ----------------
 
   Future<void> _onApple() async {
     setState(() => _loading = true);
     try {
       await AuthService().signInWithApple();
-    } catch (e) {
+    } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Apple sign-in failed: $e')),
+        const SnackBar(content: Text('Apple sign-in failed')),
       );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<void> _onGuestContinue() async {
+  // ---------------- GUEST ----------------
+
+  Future<void> _onGuest() async {
     setState(() => _loading = true);
     try {
       await AuthService().signInAsGuest();
-      // Navigation is handled by authStateChanges listener elsewhere.
-    } catch (e) {
+    } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Guest sign-in failed: $e')),
+        const SnackBar(content: Text('Guest sign-in failed')),
       );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
+
+  // ---------------- UI ----------------
 
   @override
   Widget build(BuildContext context) {
@@ -104,31 +127,22 @@ class _SignInScreenState extends State<SignInScreen> {
                     Text(
                       'campus buddy',
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: theme.textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w600),
                     ),
 
                     const SizedBox(height: 32),
 
                     Text(
-                      'Create an account',
+                      'Sign in',
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Enter your email to sign up for this app',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey[600],
-                      ),
+                      style: theme.textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w600),
                     ),
 
                     const SizedBox(height: 24),
 
+                    // EMAIL
                     TextFormField(
                       controller: _emailCtrl,
                       keyboardType: TextInputType.emailAddress,
@@ -136,14 +150,6 @@ class _SignInScreenState extends State<SignInScreen> {
                         hintText: 'email@domain.com',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.black),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
                         ),
                       ),
                       validator: (v) {
@@ -159,6 +165,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
                     const SizedBox(height: 12),
 
+                    // PASSWORD
                     TextFormField(
                       controller: _passwordCtrl,
                       obscureText: _obscurePassword,
@@ -166,14 +173,6 @@ class _SignInScreenState extends State<SignInScreen> {
                         hintText: 'Password',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.black),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -189,79 +188,91 @@ class _SignInScreenState extends State<SignInScreen> {
                         ),
                       ),
                       validator: (v) {
-                        if (v == null || v.trim().isEmpty) {
+                        if (v == null || v.isEmpty) {
                           return 'Enter your password';
-                        }
-                        if (v.trim().length < 6) {
-                          return 'Password must be at least 6 characters';
                         }
                         return null;
                       },
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
 
+                    // FORGOT PASSWORD
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                              const ForgotPasswordScreen(),
+                            ),
+                          );
+                        },
+                        child: const Text('Forgot password?'),
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // SIGN IN
                     SizedBox(
                       height: 48,
                       child: _loading
                           ? const Center(child: CircularProgressIndicator())
                           : ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.black,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                elevation: 0,
-                              ),
-                              onPressed: _onEmailContinue,
-                              child: const Text(
-                                'Continue',
-                                style: TextStyle(fontWeight: FontWeight.w600),
-                              ),
-                            ),
+                        onPressed: _onSignIn,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          'Sign in',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // CREATE ACCOUNT
+                    OutlinedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                            const CreateAccountScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text('Create an account'),
                     ),
 
                     const SizedBox(height: 24),
 
+                    // OR
                     Row(
                       children: [
-                        Expanded(
-                          child: Container(
-                            height: 1,
-                            color: Colors.grey[300],
-                          ),
-                        ),
+                        Expanded(child: Divider(color: Colors.grey[300])),
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            'or',
-                            style: TextStyle(color: Colors.grey),
-                          ),
+                          child: Text('or'),
                         ),
-                        Expanded(
-                          child: Container(
-                            height: 1,
-                            color: Colors.grey[300],
-                          ),
-                        ),
+                        Expanded(child: Divider(color: Colors.grey[300])),
                       ],
                     ),
 
                     const SizedBox(height: 24),
 
-                    // GOOGLE BUTTON WITH ICON
+                    // GOOGLE
                     SizedBox(
                       height: 48,
                       child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.grey[100],
-                          foregroundColor: Colors.black,
-                          side: BorderSide(color: Colors.grey[200]!),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
                         onPressed: _loading ? null : _onGoogle,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -271,10 +282,7 @@ class _SignInScreenState extends State<SignInScreen> {
                               height: 20,
                             ),
                             const SizedBox(width: 10),
-                            const Text(
-                              'Continue with Google',
-                              style: TextStyle(fontWeight: FontWeight.w500),
-                            ),
+                            const Text('Continue with Google'),
                           ],
                         ),
                       ),
@@ -282,64 +290,36 @@ class _SignInScreenState extends State<SignInScreen> {
 
                     const SizedBox(height: 12),
 
-                    // APPLE BUTTON WITH ICON
-                    SizedBox(
-                      height: 48,
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.grey[100],
-                          foregroundColor: Colors.black,
-                          side: BorderSide(color: Colors.grey[200]!),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        onPressed: _loading ? null : _onApple,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset(
-                              'assets/icons/apple.png',
-                              height: 20,
-                            ),
-                            const SizedBox(width: 10),
-                            const Text(
-                              'Continue with Apple',
-                              style: TextStyle(fontWeight: FontWeight.w500),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // CONTINUE AS GUEST
-                    Center(
-                      child: TextButton(
-                        onPressed: _loading ? null : _onGuestContinue,
-                        child: const Text(
-                          'Continue as Guest',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black,
+                    // APPLE
+                    if (Platform.isIOS || Platform.isMacOS)
+                      SizedBox(
+                        height: 48,
+                        child: OutlinedButton(
+                          onPressed: _loading ? null : _onApple,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Image.asset(
+                                'assets/icons/apple.png',
+                                height: 20,
+                              ),
+                              const SizedBox(width: 10),
+                              const Text('Continue with Apple'),
+                            ],
                           ),
                         ),
                       ),
-                    ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
 
-                    Text(
-                      'By clicking continue, you agree to our Terms of Service and Privacy Policy',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey[500],
+                    // GUEST
+                    TextButton(
+                      onPressed: _loading ? null : _onGuest,
+                      child: const Text(
+                        'Continue as Guest',
+                        style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),
-
-                    const SizedBox(height: 16),
                   ],
                 ),
               ),

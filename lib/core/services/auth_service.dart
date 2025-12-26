@@ -114,17 +114,19 @@ class AuthService {
 
   /// Google sign-in (web + mobile) and Firestore sync.
   Future<User?> signInWithGoogle() async {
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      throw Exception('Google Sign-In not configured on iOS');
+    }
+
     try {
       UserCredential credential;
 
       if (kIsWeb) {
-        // Web: use popup with GoogleAuthProvider
         final googleProvider = GoogleAuthProvider();
         credential = await _auth.signInWithPopup(googleProvider);
       } else {
-        // Android/iOS: use google_sign_in plugin
         final googleUser = await GoogleSignIn().signIn();
-        if (googleUser == null) return null; // user cancelled
+        if (googleUser == null) return null;
 
         final googleAuth = await googleUser.authentication;
 
@@ -142,12 +144,8 @@ class AuthService {
       }
 
       return user;
-    } on FirebaseAuthException catch (e, stack) {
-      debugPrint('signInWithGoogle error: ${e.code} – ${e.message}');
-      debugPrint(stack.toString());
-      rethrow;
     } catch (e, stack) {
-      debugPrint('signInWithGoogle unknown error: $e');
+      debugPrint('signInWithGoogle error: $e');
       debugPrint(stack.toString());
       rethrow;
     }
