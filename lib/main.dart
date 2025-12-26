@@ -15,6 +15,8 @@ import 'features/profile/edit_profile_screen.dart';
 
 // Events (Phase 4)
 import 'features/events/screens/event_create_screen.dart';
+import 'splash_screen.dart';
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,7 +44,7 @@ class CampusBuddyApp extends StatelessWidget {
         useMaterial3: true,
         colorSchemeSeed: Colors.blue,
       ),
-      home: const AuthGate(),
+      home: const SplashScreen(),
     );
   }
 }
@@ -67,7 +69,7 @@ class AuthGate extends StatelessWidget {
           return const HomeScreen();
         }
 
-        return const SignInScreen();
+        return SignInScreen();
       },
     );
   }
