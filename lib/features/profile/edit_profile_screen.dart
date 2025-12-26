@@ -59,7 +59,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _departmentCtrl.text = profile?.department ?? '';
 
     // AppUser currently has no phone/section/year fields.
-    // Keep UI fields as extra-only for now.
     _phoneCtrl.text = '';
     _sectionCtrl.text = '';
     _yearCtrl.text = '';
@@ -100,6 +99,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         setState(() => _loading = false);
       }
     }
+  }
+
+  Future<void> _signOut() async {
+    await _authService.signOut();
+    if (!mounted) return;
+
+    // Go back to the root; AuthGate will show the correct screen based on auth state.
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override
@@ -258,6 +265,32 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     child: const Text('Save changes'),
                   ),
                 ),
+
+                const SizedBox(height: 16),
+
+                // ---------- SIGN OUT BUTTON ----------
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _signOut,
+                    icon: const Icon(Icons.logout, color: Colors.red),
+                    label: const Text(
+                      'Sign out',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.red),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -395,7 +428,7 @@ class _EditableRow extends StatelessWidget {
                     TextButton(
                       onPressed: () {
                         controller.text = tmp.text;
-                        Navigator.pop(context);
+                        Navigator.pop(context);q
                       },
                       child: const Text('OK'),
                     ),

@@ -13,9 +13,9 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
 
+    // After a short delay, go to AuthGate
     Future.delayed(const Duration(seconds: 2), () {
-      Navigator.pushReplacement(
-        context,
+      Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const AuthGate()),
       );
     });

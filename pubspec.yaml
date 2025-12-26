@@ -41,6 +41,7 @@ flutter:
   assets:
     - assets/icons/google.png
     - assets/icons/apple.png
+    - assets/images/
 
 flutter_native_splash:
   color: "#1E88C8"   # blue background for startup screen
