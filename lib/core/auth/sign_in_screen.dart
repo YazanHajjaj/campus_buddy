@@ -114,7 +114,7 @@ class _SignInScreenState extends State<SignInScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Form(
@@ -122,16 +122,26 @@ class _SignInScreenState extends State<SignInScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
+
+                    // AUTH ICON (integrated, not app icon)
+                    Center(
+                      child: Image.asset(
+                        'assets/icons/auth_icon.png',
+                        height: 100,
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
 
                     Text(
-                      'campus buddy',
+                      'Campus Buddy',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.headlineSmall
                           ?.copyWith(fontWeight: FontWeight.w600),
                     ),
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
 
                     Text(
                       'Sign in',

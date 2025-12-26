@@ -44,6 +44,7 @@ flutter:
     - assets/icons/apple.png
     - assets/icons/app_icon.png
     - assets/splash/splash_image.png
+    - assets/icons/auth_icon.png
 
 flutter_native_splash:
   color: "#4A90E2"   # pick a blue matching your image
