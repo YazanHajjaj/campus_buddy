@@ -1,1 +1,70 @@
-{}
+{
+  "auth.signIn": "تسجيل الدخول",
+  "auth.signUp": "إنشاء حساب",
+  "auth.signOut": "تسجيل الخروج",
+  "auth.email": "البريد الإلكتروني",
+  "auth.password": "كلمة المرور",
+  "auth.forgotPassword": "نسيت كلمة المرور؟",
+
+  "common.save": "حفظ",
+  "common.cancel": "إلغاء",
+  "common.delete": "حذف",
+  "common.confirm": "تأكيد",
+  "common.loading": "جارٍ التحميل...",
+  "common.error": "حدث خطأ ما",
+
+  "nav.home": "الرئيسية",
+  "nav.resources": "الموارد",
+  "nav.events": "الفعاليات",
+  "nav.mentorship": "الإرشاد",
+  "nav.profile": "الملف الشخصي",
+  "nav.settings": "الإعدادات",
+
+  "resources.title": "الموارد",
+  "resources.upload": "رفع",
+  "resources.uploadFile": "رفع ملف",
+  "resources.description": "الوصف",
+  "resources.noItems": "لا توجد موارد متاحة",
+
+  "events.title": "الفعاليات",
+  "events.upcoming": "الفعاليات القادمة",
+  "events.create": "إنشاء فعالية",
+  "events.rsvp": "تأكيد الحضور",
+  "events.capacityFull": "الفعالية ممتلئة",
+
+  "mentorship.title": "الإرشاد",
+  "mentorship.request": "طلب إرشاد",
+  "mentorship.accept": "قبول",
+  "mentorship.decline": "رفض",
+  "mentorship.chat": "محادثة",
+
+  "studyGroups.title": "مجموعات الدراسة",
+  "studyGroups.create": "إنشاء مجموعة",
+  "studyGroups.join": "الانضمام إلى المجموعة",
+  "studyGroups.leave": "مغادرة المجموعة",
+
+  "profile.title": "الملف الشخصي",
+  "profile.edit": "تعديل الملف الشخصي",
+  "profile.email": "البريد الإلكتروني",
+  "profile.role": "الدور",
+  "profile.saveChanges": "حفظ التغييرات",
+
+  "notifications.title": "الإشعارات",
+  "notifications.settings": "إعدادات الإشعارات",
+  "notifications.enableEvents": "إشعارات الفعاليات",
+  "notifications.enableMentorship": "إشعارات الإرشاد",
+  "notifications.enableStudyGroups": "إشعارات مجموعات الدراسة",
+  "notifications.enableGamification": "إشعارات التحفيز",
+
+  "gamification.title": "الإنجازات",
+  "gamification.levelUp": "لقد ارتقيت بمستوى!",
+  "gamification.badgeUnlocked": "تم فتح شارة",
+
+  "accessibility.title": "إمكانية الوصول",
+  "accessibility.textSize": "حجم النص",
+  "accessibility.highContrast": "وضع التباين العالي",
+
+  "error.generic": "حدث خطأ غير متوقع",
+  "error.network": "خطأ في الشبكة",
+  "error.unauthorized": "وصول غير مصرح به"
+}

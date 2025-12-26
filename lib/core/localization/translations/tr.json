@@ -1,1 +1,70 @@
-{}
+{
+  "auth.signIn": "Giriş Yap",
+  "auth.signUp": "Kayıt Ol",
+  "auth.signOut": "Çıkış Yap",
+  "auth.email": "E-posta",
+  "auth.password": "Şifre",
+  "auth.forgotPassword": "Şifremi unuttum?",
+
+  "common.save": "Kaydet",
+  "common.cancel": "İptal",
+  "common.delete": "Sil",
+  "common.confirm": "Onayla",
+  "common.loading": "Yükleniyor...",
+  "common.error": "Bir hata oluştu",
+
+  "nav.home": "Ana Sayfa",
+  "nav.resources": "Kaynaklar",
+  "nav.events": "Etkinlikler",
+  "nav.mentorship": "Mentorluk",
+  "nav.profile": "Profil",
+  "nav.settings": "Ayarlar",
+
+  "resources.title": "Kaynaklar",
+  "resources.upload": "Yükle",
+  "resources.uploadFile": "Dosya yükle",
+  "resources.description": "Açıklama",
+  "resources.noItems": "Henüz kaynak bulunmuyor",
+
+  "events.title": "Etkinlikler",
+  "events.upcoming": "Yaklaşan etkinlikler",
+  "events.create": "Etkinlik oluştur",
+  "events.rsvp": "Katıl",
+  "events.capacityFull": "Etkinlik dolu",
+
+  "mentorship.title": "Mentorluk",
+  "mentorship.request": "Mentorluk iste",
+  "mentorship.accept": "Kabul et",
+  "mentorship.decline": "Reddet",
+  "mentorship.chat": "Sohbet",
+
+  "studyGroups.title": "Çalışma Grupları",
+  "studyGroups.create": "Grup oluştur",
+  "studyGroups.join": "Gruba katıl",
+  "studyGroups.leave": "Gruptan ayrıl",
+
+  "profile.title": "Profil",
+  "profile.edit": "Profili düzenle",
+  "profile.email": "E-posta",
+  "profile.role": "Rol",
+  "profile.saveChanges": "Değişiklikleri kaydet",
+
+  "notifications.title": "Bildirimler",
+  "notifications.settings": "Bildirim ayarları",
+  "notifications.enableEvents": "Etkinlik bildirimleri",
+  "notifications.enableMentorship": "Mentorluk bildirimleri",
+  "notifications.enableStudyGroups": "Çalışma grubu bildirimleri",
+  "notifications.enableGamification": "Oyunlaştırma bildirimleri",
+
+  "gamification.title": "Başarılar",
+  "gamification.levelUp": "Seviye atladın!",
+  "gamification.badgeUnlocked": "Rozet kazanıldı",
+
+  "accessibility.title": "Erişilebilirlik",
+  "accessibility.textSize": "Metin boyutu",
+  "accessibility.highContrast": "Yüksek kontrast modu",
+
+  "error.generic": "Beklenmeyen bir hata oluştu",
+  "error.network": "Ağ hatası",
+  "error.unauthorized": "Yetkisiz erişim"
+}

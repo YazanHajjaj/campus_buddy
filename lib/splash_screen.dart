@@ -13,9 +13,10 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
 
-    // After a short delay, go to AuthGate
     Future.delayed(const Duration(seconds: 2), () {
-      Navigator.of(context).pushReplacement(
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
         MaterialPageRoute(builder: (_) => const AuthGate()),
       );
     });
@@ -23,17 +24,11 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFF1E88C8),
-      body: Center(
-        child: Text(
-          "campus buddy",
-          style: TextStyle(
-            fontSize: 32,
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.2,
-          ),
+    return Scaffold(
+      body: SizedBox.expand(
+        child: Image.asset(
+          'assets/splash/splash_image.png',
+          fit: BoxFit.cover,
         ),
       ),
     );
