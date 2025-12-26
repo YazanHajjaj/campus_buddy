@@ -55,6 +55,9 @@ class AuthService {
     }
   }
 
+  /// Convenience alias for guest login used by the UI.
+  Future<User?> signInAsGuest() => signInAnonymously();
+
   /// Email/password sign-in.
   Future<User?> signInWithEmailAndPassword({
     required String email,

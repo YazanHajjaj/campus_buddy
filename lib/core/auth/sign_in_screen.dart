@@ -32,6 +32,7 @@ class _SignInScreenState extends State<SignInScreen> {
         email: _emailCtrl.text.trim(),
         password: _passwordCtrl.text.trim(),
       );
+      // Navigation is handled by authStateChanges listener elsewhere.
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Email sign-in failed: $e')),
@@ -61,6 +62,20 @@ class _SignInScreenState extends State<SignInScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Apple sign-in failed: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _onGuestContinue() async {
+    setState(() => _loading = true);
+    try {
+      await AuthService().signInAsGuest();
+      // Navigation is handled by authStateChanges listener elsewhere.
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Guest sign-in failed: $e')),
       );
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -297,7 +312,24 @@ class _SignInScreenState extends State<SignInScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
+
+                    // CONTINUE AS GUEST
+                    Center(
+                      child: TextButton(
+                        onPressed: _loading ? null : _onGuestContinue,
+                        child: const Text(
+                          'Continue as Guest',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
 
                     Text(
                       'By clicking continue, you agree to our Terms of Service and Privacy Policy',
