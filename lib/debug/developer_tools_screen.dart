@@ -5,7 +5,7 @@ import 'firebase_health_check.dart';
 import 'test_resource_backend.dart';
 import 'storage_test_screen.dart';
 
-// UI (Phase 2)
+// Resources (REAL SCREENS)
 import '../features/resources/screens/resource_list_screen.dart';
 import '../features/resources/screens/resource_upload_screen.dart';
 
@@ -36,7 +36,6 @@ class DeveloperToolsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          // Firebase
           _sectionHeader("Firebase"),
           _navTile(
             context,
@@ -46,9 +45,6 @@ class DeveloperToolsScreen extends StatelessWidget {
             child: const FirebaseHealthCheckScreen(),
           ),
 
-          const SizedBox(height: 8),
-
-          // Storage
           _sectionHeader("Storage"),
           _navTile(
             context,
@@ -58,40 +54,29 @@ class DeveloperToolsScreen extends StatelessWidget {
             child: const StorageTestScreen(),
           ),
 
-          const SizedBox(height: 8),
-
-          // Resource backend
-          _sectionHeader("Resource Backend"),
+          _sectionHeader("Resources"),
           _navTile(
             context,
-            title: "Resource Backend Test",
-            subtitle: "CRUD + counters",
+            title: "Resource List (Live)",
+            subtitle: "Firestore + filters + viewer",
             icon: Icons.folder,
-            child: const ResourceBackendTestScreen(),
-          ),
-
-          const SizedBox(height: 8),
-
-          // Static UI (Phase 2)
-          _sectionHeader("UI Screens (Static)"),
-          _navTile(
-            context,
-            title: "Resource List Screen",
-            subtitle: "Static UI (Phase 2)",
-            icon: Icons.list,
             child: const ResourceListScreen(),
           ),
           _navTile(
             context,
-            title: "Upload Resource Screen",
-            subtitle: "Static UI (Phase 2)",
+            title: "Upload Resource",
+            subtitle: "Firebase Storage + Firestore",
             icon: Icons.upload,
-            child: const UploadScreen(),
+            child: const ResourceUploadScreen(),
+          ),
+          _navTile(
+            context,
+            title: "Resource Backend Test",
+            subtitle: "CRUD + counters",
+            icon: Icons.bug_report,
+            child: const ResourceBackendTestScreen(),
           ),
 
-          const SizedBox(height: 8),
-
-          // Profile backend (Phase 3)
           _sectionHeader("Profile Backend"),
           _navTile(
             context,
@@ -101,9 +86,6 @@ class DeveloperToolsScreen extends StatelessWidget {
             child: const DeveloperToolsProfileTest(),
           ),
 
-          const SizedBox(height: 8),
-
-          // Events backend (Phase 4)
           _sectionHeader("Events Backend"),
           _navTile(
             context,
@@ -113,45 +95,33 @@ class DeveloperToolsScreen extends StatelessWidget {
             child: const DeveloperToolsEventsTest(),
           ),
 
-          const SizedBox(height: 8),
-
-          // Mentorship backend (Phase 5)
           _sectionHeader("Mentorship Backend"),
           _navTile(
             context,
             title: "Mentorship Backend Test",
-            subtitle: "Profiles, requests, sessions, chat, groups",
+            subtitle: "Profiles, requests, sessions",
             icon: Icons.people,
             child: const DeveloperToolsMentorshipTest(),
           ),
 
-          const SizedBox(height: 8),
-
-          // Analytics backend (Phase 8)
           _sectionHeader("Analytics Backend"),
           _navTile(
             context,
             title: "Analytics Backend Test",
-            subtitle: "Student stats, admin stats, exports",
+            subtitle: "Student & admin stats",
             icon: Icons.analytics,
             child: const DeveloperToolsAnalyticsTest(),
           ),
 
-          const SizedBox(height: 8),
-
-          // Notifications (Phase 11)
           _sectionHeader("Notifications"),
           _navTile(
             context,
             title: "Notifications Debug",
-            subtitle: "Payloads, routing, foreground handling",
+            subtitle: "Payloads & routing",
             icon: Icons.notifications,
             child: const DeveloperToolsNotificationsTest(),
           ),
 
-          const SizedBox(height: 8),
-
-          // App info
           _sectionHeader("App Info"),
           _infoTile("Build Mode", _buildMode()),
           _infoTile("Platform", Theme.of(context).platform.name),

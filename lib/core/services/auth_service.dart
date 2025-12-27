@@ -159,7 +159,7 @@ class AuthService {
     final random = Random.secure();
     return List.generate(
       length,
-      (_) => charset[random.nextInt(charset.length)],
+          (_) => charset[random.nextInt(charset.length)],
     ).join();
   }
 
@@ -189,7 +189,7 @@ class AuthService {
       );
 
       final credential =
-          await _auth.signInWithCredential(oauthCredential);
+      await _auth.signInWithCredential(oauthCredential);
 
       final user = credential.user;
       if (user != null) {

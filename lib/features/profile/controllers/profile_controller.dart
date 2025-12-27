@@ -23,28 +23,37 @@ class ProfileController {
   /// Update profile fields.
   /// Any update here MUST reflect in live listeners.
   Future<void> updateProfile(
-    String uid, {
-    String? name,
-    String? bio,
-    String? department,
-    String? email,
-    String? phone,
-    String? section,
-    String? year,
-  }) async {
+      String uid, {
+        String? name,
+        String? email,
+        String? phone,
+        String? bio,
+        String? department,
+        String? section,
+        String? studentId,
+        String? year,
+      }) async {
     final data = <String, dynamic>{};
 
-    if (name != null) data['name'] = name;
-    if (bio != null) data['bio'] = bio;
-    if (department != null) data['department'] = department;
+    void putIfValid(String key, String? value) {
+      if (value == null) return;
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) return;
+      data[key] = trimmed;
+    }
 
-    // extra fields you may want to store in Firestore
-    if (email != null) data['email'] = email;
-    if (phone != null) data['phone'] = phone;
-    if (section != null) data['section'] = section;
-    if (year != null) data['year'] = year;
+    putIfValid('name', name);
+    putIfValid('email', email);
+    putIfValid('phone', phone);
+    putIfValid('bio', bio);
+    putIfValid('department', department);
+    putIfValid('section', section);
+    putIfValid('studentId', studentId);
+    putIfValid('year', year);
 
     if (data.isEmpty) return;
+
+    data['updatedAt'] = DateTime.now();
 
     await service.updateUserProfile(uid, data);
   }
@@ -58,6 +67,7 @@ class ProfileController {
 
     await service.updateUserProfile(uid, {
       'profileImageUrl': imageUrl,
+      'updatedAt': DateTime.now(),
     });
 
     return imageUrl;
@@ -69,6 +79,7 @@ class ProfileController {
 
     await service.updateUserProfile(uid, {
       'profileImageUrl': null,
+      'updatedAt': DateTime.now(),
     });
   }
 }

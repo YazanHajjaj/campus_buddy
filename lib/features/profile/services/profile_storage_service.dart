@@ -5,8 +5,9 @@ import 'package:firebase_storage/firebase_storage.dart';
 import '../models/app_user.dart';
 import 'profile_service.dart';
 
-/// Handles uploading and deleting user profile images.
-/// This works together with ProfileFirestoreService for metadata updates.
+/// Handles profile image storage and Firestore profile access.
+/// Storage ONLY uploads/deletes files.
+/// Firestore writes are handled by ProfileController.
 class ProfileStorageService implements ProfileService {
   final _users = FirebaseFirestore.instance.collection('users');
   final _storage = FirebaseStorage.instance;
@@ -18,54 +19,32 @@ class ProfileStorageService implements ProfileService {
     return 'users/$uid/profile.jpg';
   }
 
+  // =========================
+  // IMAGE STORAGE
+  // =========================
+
   @override
   Future<String> uploadProfileImage(String uid, File imageFile) async {
-    try {
-      final ref = _storage.ref().child(_imagePath(uid));
+    final ref = _storage.ref().child(_imagePath(uid));
 
-      // upload file
-      await ref.putFile(imageFile);
+    await ref.putFile(imageFile);
 
-      // get public download url
-      final url = await ref.getDownloadURL();
-
-      // write url to Firestore
-      await _users.doc(uid).set(
-        {
-          'profileImageUrl': url,
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
-
-      return url;
-    } catch (e) {
-      print('uploadProfileImage error: $e');
-      rethrow;
-    }
+    return await ref.getDownloadURL();
   }
 
   @override
   Future<void> deleteProfileImage(String uid) async {
+    final ref = _storage.ref().child(_imagePath(uid));
+
+    // Deleting a non-existing file throws → ignore safely
     try {
-      final ref = _storage.ref().child(_imagePath(uid));
-
-      // If there is no file, delete will throw, so we try/catch silently.
-      await ref.delete().catchError((_) {});
-
-      // remove url from Firestore
-      await _users.doc(uid).set(
-        {
-          'profileImageUrl': null,
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
-    } catch (e) {
-      print('deleteProfileImage error: $e');
-      rethrow;
-    }
+      await ref.delete();
+    } catch (_) {}
   }
+
+  // =========================
+  // PROFILE DATA
+  // =========================
 
   @override
   Future<AppUser?> getUserProfile(String uid) async {
@@ -86,8 +65,8 @@ class ProfileStorageService implements ProfileService {
 
   @override
   Stream<AppUser?> watchUserProfile(String uid) {
-    return _users.doc(uid).snapshots().map((snap) {
-      return AppUser.fromMap(uid, snap.data());
-    });
+    return _users.doc(uid).snapshots().map(
+          (snap) => AppUser.fromMap(uid, snap.data()),
+    );
   }
 }

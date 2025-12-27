@@ -1,14 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Basic user profile data stored in Firestore.
-/// Used across profile, mentorship, resource uploads, etc.
 class AppUser {
   final String uid;
+
   final String? name;
   final String? email;
+  final String? phone;
   final String? bio;
   final String? department;
-  final String? profileImageUrl; // avatar photo
+  final String? section;
+  final String? studentId;
+  final String? year;
+  final String? profileImageUrl;
+
+  final double? gpa;
+  final int? credits;
+
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -16,14 +23,19 @@ class AppUser {
     required this.uid,
     this.name,
     this.email,
+    this.phone,
     this.bio,
     this.department,
+    this.section,
+    this.studentId,
+    this.year,
     this.profileImageUrl,
+    this.gpa,
+    this.credits,
     this.createdAt,
     this.updatedAt,
   });
 
-  /// Create object from Firestore map
   factory AppUser.fromMap(String uid, Map<String, dynamic>? data) {
     if (data == null) {
       return AppUser(uid: uid);
@@ -33,50 +45,38 @@ class AppUser {
       uid: uid,
       name: data['name'] as String?,
       email: data['email'] as String?,
+      phone: data['phone'] as String?,
       bio: data['bio'] as String?,
       department: data['department'] as String?,
+      section: data['section'] as String?,
+      studentId: data['studentId'] as String?,
+      year: data['year'] as String?,
       profileImageUrl: data['profileImageUrl'] as String?,
+      gpa: (data['gpa'] as num?)?.toDouble(),
+      credits: data['credits'] as int?,
       createdAt: _toDate(data['createdAt']),
       updatedAt: _toDate(data['updatedAt']),
     );
   }
 
-  /// Convert object to Firestore map
   Map<String, dynamic> toMap() {
     return {
       'name': name,
       'email': email,
+      'phone': phone,
       'bio': bio,
       'department': department,
+      'section': section,
+      'studentId': studentId,
+      'year': year,
       'profileImageUrl': profileImageUrl,
+      'gpa': gpa,
+      'credits': credits,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
     };
   }
 
-  /// Makes it easier to update selected fields
-  AppUser copyWith({
-    String? name,
-    String? email,
-    String? bio,
-    String? department,
-    String? profileImageUrl,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) {
-    return AppUser(
-      uid: uid,
-      name: name ?? this.name,
-      email: email ?? this.email,
-      bio: bio ?? this.bio,
-      department: department ?? this.department,
-      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-    );
-  }
-
-  /// Quick helper since Firestore stores timestamps
   static DateTime? _toDate(dynamic value) {
     if (value == null) return null;
     if (value is Timestamp) return value.toDate();
