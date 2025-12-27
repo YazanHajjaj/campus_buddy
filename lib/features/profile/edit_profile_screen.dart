@@ -88,7 +88,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       bio: _bioCtrl.text.trim(),
     );
 
-    if (mounted) Navigator.pop(context);
+    if (mounted) {
+      Navigator.pop(context, true); // ✅ IMPORTANT
+    }
   }
 
   Future<void> _changePhoto() async {
@@ -101,6 +103,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     await _controller.uploadImage(uid, File(file.path));
     await _load();
+
+    // ✅ Tell previous screen something changed
+    if (mounted) {
+      Navigator.pop(context, true);
+    }
   }
 
   @override

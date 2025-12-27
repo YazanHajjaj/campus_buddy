@@ -47,13 +47,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  void _openSettings() {
-    Navigator.push(
+  /// 🔥 IMPORTANT: refresh after returning from settings
+  Future<void> _openSettings() async {
+    final updated = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (_) => const SettingsScreen(),
       ),
     );
+
+    if (updated == true) {
+      await _loadData();
+    }
   }
 
   @override
@@ -298,17 +303,23 @@ class _SummaryItem extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 12,
-                fontWeight: FontWeight.w600)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         const SizedBox(height: 6),
-        Text(value,
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.w800)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
       ],
     );
   }
@@ -371,11 +382,14 @@ class _RoleChip extends StatelessWidget {
         color: const Color(0xFF2446C8),
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(label,
-          style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-              fontSize: 12)),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+          fontSize: 12,
+        ),
+      ),
     );
   }
 }
@@ -385,8 +399,11 @@ class _InfoTile extends StatelessWidget {
   final String label;
   final String value;
 
-  const _InfoTile(
-      {required this.icon, required this.label, required this.value});
+  const _InfoTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -405,17 +422,24 @@ class _InfoTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label,
-                    style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.black54,
-                        fontWeight: FontWeight.w600)),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.black54,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 6),
-                Text(value,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w700)),
+                Text(
+                  value,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ],
             ),
           ),
@@ -431,11 +455,12 @@ class _ActionButton extends StatelessWidget {
   final VoidCallback onTap;
   final bool danger;
 
-  const _ActionButton(
-      {required this.icon,
-        required this.text,
-        required this.onTap,
-        required this.danger});
+  const _ActionButton({
+    required this.icon,
+    required this.text,
+    required this.onTap,
+    required this.danger,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -449,12 +474,15 @@ class _ActionButton extends StatelessWidget {
       child: OutlinedButton.icon(
         onPressed: onTap,
         icon: Icon(icon, size: 18, color: color),
-        label: Text(text,
-            style: TextStyle(color: color, fontWeight: FontWeight.w700)),
+        label: Text(
+          text,
+          style: TextStyle(color: color, fontWeight: FontWeight.w700),
+        ),
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: border),
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
       ),
     );

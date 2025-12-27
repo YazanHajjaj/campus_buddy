@@ -5,7 +5,14 @@ import 'resource_upload_screen.dart';
 import 'resource_pdf_viewer.dart';
 
 class ResourceListScreen extends StatefulWidget {
-  const ResourceListScreen({super.key});
+  final String? department;
+  final String? courseCode;
+
+  const ResourceListScreen({
+    super.key,
+    this.department,
+    this.courseCode,
+  });
 
   @override
   State<ResourceListScreen> createState() => _ResourceListScreenState();
@@ -20,6 +27,17 @@ class _ResourceListScreenState extends State<ResourceListScreen> {
         .where('isActive', isEqualTo: true)
         .where('isPublic', isEqualTo: true);
 
+    // ✅ department filter (EEE / COE)
+    if (widget.department != null && widget.department!.isNotEmpty) {
+      ref = ref.where('department', isEqualTo: widget.department);
+    }
+
+    // ✅ course filter (MATH101)
+    if (widget.courseCode != null && widget.courseCode!.isNotEmpty) {
+      ref = ref.where('courseCode', isEqualTo: widget.courseCode);
+    }
+
+    // ✅ category filter (Math / Physics / Programming)
     if (_selectedCategory != 'All') {
       ref = ref.where('category', isEqualTo: _selectedCategory);
     }
@@ -53,7 +71,7 @@ class _ResourceListScreenState extends State<ResourceListScreen> {
 
       body: Column(
         children: [
-          // ───── FILTER BAR ─────
+          /* ───── FILTER BAR ───── */
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -69,7 +87,7 @@ class _ResourceListScreenState extends State<ResourceListScreen> {
 
           const Divider(height: 1),
 
-          // ───── RESOURCE LIST ─────
+          /* ───── RESOURCE LIST ───── */
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: _query(),
@@ -123,8 +141,7 @@ class _ResourceListScreenState extends State<ResourceListScreen> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       data['title'] ?? 'Untitled',
@@ -149,17 +166,20 @@ class _ResourceListScreenState extends State<ResourceListScreen> {
                           const SizedBox(height: 10),
 
                           Text(
-                            'Category: ${data['category'] ?? '—'}',
+                            'Department: ${data['department'] ?? '—'}',
                             style: const TextStyle(fontSize: 12),
                           ),
                           Text(
                             'Course: ${data['courseCode'] ?? '—'}',
                             style: const TextStyle(fontSize: 12),
                           ),
+                          Text(
+                            'Category: ${data['category'] ?? '—'}',
+                            style: const TextStyle(fontSize: 12),
+                          ),
 
                           const SizedBox(height: 12),
 
-                          // ───── OPEN PDF (FIXED STYLE) ─────
                           SizedBox(
                             width: double.infinity,
                             height: 44,
@@ -169,7 +189,7 @@ class _ResourceListScreenState extends State<ResourceListScreen> {
                                     .collection('resources')
                                     .doc(doc.id)
                                     .update({
-                                  'openCount': FieldValue.increment(1),
+                                  'viewCount': FieldValue.increment(1),
                                 });
 
                                 Navigator.push(

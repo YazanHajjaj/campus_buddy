@@ -3,8 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'home_repository.dart';
+
 import 'package:campus_buddy/features/notifications/screens/notifications_screen.dart';
 import 'package:campus_buddy/features/notifications/services/notification_repository.dart';
+import 'package:campus_buddy/features/resources/screens/resource_list_screen.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -28,7 +30,8 @@ class HomePage extends StatelessWidget {
           );
         }
 
-        final data = snapshot.data!.data() as Map<String, dynamic>;
+        final raw = snapshot.data!.data();
+        final data = (raw is Map<String, dynamic>) ? raw : <String, dynamic>{};
 
         return _HomeView(
           uid: uid,
@@ -70,6 +73,7 @@ class _HomeView extends StatelessWidget {
             stream: notifRepo.unreadForUser(uid),
             builder: (context, snap) {
               final count = snap.data?.docs.length ?? 0;
+
               return Stack(
                 children: [
                   IconButton(
@@ -137,7 +141,7 @@ class _HomeView extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              /* ───── SECTIONS ───── */
+              /* ───── SECTIONS (DEPARTMENTS) ───── */
               const Text(
                 'Sections',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
@@ -152,16 +156,25 @@ class _HomeView extends StatelessWidget {
                     if (!snapshot.hasData) return const SizedBox();
 
                     return SizedBox(
-                      height: 120, // ✅ FIXED OVERFLOW
+                      height: 120,
                       child: ListView(
                         scrollDirection: Axis.horizontal,
                         children: snapshot.data!.docs.map((doc) {
                           final d = doc.data() as Map<String, dynamic>;
+                          final deptCode = (d['code'] ?? '').toString();
+
                           return _SectionItem(
                             imageAsset: d['iconAsset'],
-                            title: d['code'],
+                            title: deptCode, // COE / EEE
                             onTap: () {
-                              debugPrint('Tapped department ${d['code']}');
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ResourceListScreen(
+                                    department: deptCode,
+                                  ),
+                                ),
+                              );
                             },
                           );
                         }).toList(),
@@ -191,12 +204,37 @@ class _HomeView extends StatelessWidget {
                       scrollDirection: Axis.horizontal,
                       children: snapshot.data!.docs.map((doc) {
                         final c = doc.data() as Map<String, dynamic>;
+
+                        // ✅ IMPORTANT: must match resources.courseCode (ex: "MATH101")
+                        final courseCode = (c['courseCode'] ??
+                            c['code'] ??
+                            c['course'] ??
+                            '')
+                            .toString();
+
                         return _CourseCard(
                           imageAsset: c['imageAsset'],
                           title: c['title'],
                           description: c['description'],
                           onTap: () {
-                            debugPrint('Tapped course ${c['title']}');
+                            if (courseCode.trim().isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                      'Course code missing in Firestore courses collection'),
+                                ),
+                              );
+                              return;
+                            }
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ResourceListScreen(
+                                  courseCode: courseCode,
+                                ),
+                              ),
+                            );
                           },
                         );
                       }).toList(),
