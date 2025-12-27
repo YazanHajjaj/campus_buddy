@@ -18,6 +18,7 @@ class ResourcePdfViewerScreen extends StatefulWidget {
 
 class _ResourcePdfViewerScreenState extends State<ResourcePdfViewerScreen> {
   late final WebViewController _controller;
+  bool _loading = true;
 
   @override
   void initState() {
@@ -25,16 +26,45 @@ class _ResourcePdfViewerScreenState extends State<ResourcePdfViewerScreen> {
 
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (_) {
+            if (mounted) setState(() => _loading = false);
+          },
+        ),
+      )
       ..loadRequest(Uri.parse(widget.url));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF3F4F6),
+
+      // ───── APP BAR ─────
       appBar: AppBar(
-        title: Text(widget.title),
+        backgroundColor: const Color(0xFF2446C8),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          widget.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
-      body: WebViewWidget(controller: _controller),
+
+      body: Stack(
+        children: [
+          // PDF VIEW
+          WebViewWidget(controller: _controller),
+
+          // LOADING OVERLAY
+          if (_loading)
+            const Center(
+              child: CircularProgressIndicator(),
+            ),
+        ],
+      ),
     );
   }
 }

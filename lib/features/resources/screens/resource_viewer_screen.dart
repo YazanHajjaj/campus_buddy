@@ -5,7 +5,10 @@ import 'package:flutter_pdfview/flutter_pdfview.dart';
 class ResourceViewerScreen extends StatefulWidget {
   final Map<String, dynamic> resource;
 
-  const ResourceViewerScreen({super.key, required this.resource});
+  const ResourceViewerScreen({
+    super.key,
+    required this.resource,
+  });
 
   @override
   State<ResourceViewerScreen> createState() => _ResourceViewerScreenState();
@@ -30,14 +33,42 @@ class _ResourceViewerScreenState extends State<ResourceViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final title = widget.resource['title'] ?? 'Resource';
+
     return Scaffold(
+      backgroundColor: const Color(0xFFF3F4F6),
+
+      // ───── APP BAR ─────
       appBar: AppBar(
-        title: Text(widget.resource['title']),
+        backgroundColor: const Color(0xFF2446C8),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          title,
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
-      body: PDFView(
-        filePath: widget.resource['fileUrl'],
-        enableSwipe: true,
-        swipeHorizontal: false,
+
+      // ───── PDF VIEW ─────
+      body: Container(
+        margin: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: PDFView(
+          filePath: widget.resource['fileUrl'],
+          enableSwipe: true,
+          swipeHorizontal: false,
+        ),
       ),
     );
   }

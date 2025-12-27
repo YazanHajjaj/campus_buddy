@@ -4,7 +4,7 @@ import 'package:campus_buddy/core/services/auth_service.dart';
 import 'package:campus_buddy/features/profile/controllers/profile_controller.dart';
 import 'package:campus_buddy/features/profile/models/app_user.dart';
 import 'package:campus_buddy/features/profile/services/profile_storage_service.dart';
-import 'package:campus_buddy/features/profile/edit_profile_screen.dart';
+import 'package:campus_buddy/features/settings/screens/settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -29,9 +29,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadData() async {
-    final firebaseUser = _authService.currentUser;
-    final uid = firebaseUser?.uid;
-
+    final uid = _authService.currentUser?.uid;
     if (uid == null) {
       if (!mounted) return;
       setState(() => _loading = false);
@@ -39,7 +37,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     final authUser = await _authService.getCurrentAuthUser();
-    // Use the same method name as in EditProfileScreen
     final profile = await _controller.getProfile(uid);
 
     if (!mounted) return;
@@ -50,14 +47,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  Future<void> _openEditProfile() async {
-    await Navigator.of(context).push(
+  void _openSettings() {
+    Navigator.push(
+      context,
       MaterialPageRoute(
-        builder: (_) => EditProfileScreen(),
+        builder: (_) => const SettingsScreen(),
       ),
     );
-    // refresh profile data after returning
-    _loadData();
   }
 
   @override
@@ -68,127 +64,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    if (_authService.currentUser == null) {
-      return const Scaffold(
-        body: Center(child: Text('Not authenticated')),
-      );
-    }
+    final name =
+    _profile?.name?.trim().isNotEmpty == true ? _profile!.name! : 'Your Name';
 
-    final name = _profile?.name ?? 'Your name';
-    final email = _profile?.email ?? _authUser?.email ?? 'Email';
+    final email =
+        _profile?.email ?? _authUser?.email ?? 'email@example.com';
 
-    // Your AppUser currently does NOT have phone/section/year.
-    // For Phase 3 we keep the same UI but use placeholders only.
-    const phone = 'Add phone number';
-    final department = _profile?.department ?? 'Add department';
-    const section = 'Add section';
-    const year = 'Add year';
-    final bio = _profile?.bio ?? 'Tell something about yourself';
+    final department =
+    _profile?.department?.trim().isNotEmpty == true
+        ? _profile!.department!
+        : '—';
+
+    final studentId = _profile?.studentId ?? '—';
+    final year = _profile?.year ?? '—';
+    final phone = _profile?.phone ?? '—';
+    final bio = _profile?.bio ?? '—';
+
+    final gpa =
+    _profile?.gpa != null ? _profile!.gpa!.toStringAsFixed(2) : '—';
+
+    final credits =
+    _profile?.credits != null ? _profile!.credits.toString() : '—';
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF3F4F6),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: const Color(0xFF2446C8),
+        foregroundColor: Colors.white,
         elevation: 0,
-        title: const Text('profile'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: _openEditProfile,
-          ),
-        ],
+        title: const Text('Profile'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // avatar + name/email
-              Row(
-                children: [
-                  _ProfileAvatar(imageUrl: _profile?.profileImageUrl),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          name,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          email,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.black54,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              _ProfileMainCard(
+                imageUrl: _profile?.profileImageUrl,
+                name: name,
+                email: email,
+                roleLabel: 'Student',
+                department: department,
+                studentId: studentId,
+                phone: phone,
+                bio: bio,
+                year: year,
+                onOpenSettings: _openSettings,
               ),
-
-              const SizedBox(height: 24),
-
-              Text(
-                'Profile',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-
-              _InfoCard(
-                children: [
-                  _InfoRow(label: 'phone number', value: phone),
-                  const SizedBox(height: 8),
-                  _InfoRow(label: 'departement', value: department),
-                  const SizedBox(height: 8),
-                  _InfoRow(label: 'section', value: section),
-                  const SizedBox(height: 8),
-                  _InfoRow(label: 'which year', value: year),
-                ],
-              ),
-
-              const SizedBox(height: 24),
-
-              Text(
-                'bio',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-
-              _InfoCard(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                children: [
-                  Text(
-                    bio,
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 32),
-
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _openEditProfile,
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: const Text('Edit profile'),
-                ),
+              const SizedBox(height: 16),
+              _AcademicSummaryCard(
+                currentYear: year,
+                gpa: gpa,
+                credits: credits,
               ),
             ],
           ),
@@ -198,93 +125,338 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-/* Helper widgets – visually consistent with EditProfileScreen */
+/* ======================= MAIN CARD ======================= */
 
-class _ProfileAvatar extends StatelessWidget {
+class _ProfileMainCard extends StatelessWidget {
   final String? imageUrl;
+  final String name;
+  final String email;
+  final String roleLabel;
+  final String department;
+  final String studentId;
+  final String phone;
+  final String bio;
+  final String year;
 
-  const _ProfileAvatar({required this.imageUrl});
+  final VoidCallback onOpenSettings;
+
+  const _ProfileMainCard({
+    required this.imageUrl,
+    required this.name,
+    required this.email,
+    required this.roleLabel,
+    required this.department,
+    required this.studentId,
+    required this.phone,
+    required this.bio,
+    required this.year,
+    required this.onOpenSettings,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
+    return _CardShell(
+      child: Column(
+        children: [
+          const SizedBox(height: 6),
+          _Avatar(imageUrl: imageUrl),
+          const SizedBox(height: 12),
 
-    return CircleAvatar(
-      radius: 28,
-      backgroundColor: Colors.grey.shade300,
-      backgroundImage: hasImage ? NetworkImage(imageUrl!) : null,
-      child: hasImage
-          ? null
-          : Icon(
-              Icons.person,
-              size: 30,
-              color: Colors.grey.shade700,
+          Text(
+            name,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+
+          Text(email, style: const TextStyle(color: Colors.black54)),
+
+          const SizedBox(height: 10),
+          _RoleChip(label: roleLabel),
+          const SizedBox(height: 16),
+
+          _row(
+            _InfoTile(
+              icon: Icons.school_outlined,
+              label: 'Department',
+              value: department,
             ),
+            _InfoTile(
+              icon: Icons.badge_outlined,
+              label: 'Student ID',
+              value: studentId,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          _row(
+            _InfoTile(
+              icon: Icons.phone_outlined,
+              label: 'Phone',
+              value: phone,
+            ),
+            _InfoTile(
+              icon: Icons.bar_chart_outlined,
+              label: 'Academic Year',
+              value: year,
+            ),
+          ),
+
+          const SizedBox(height: 12),
+          _InfoTile(
+            icon: Icons.info_outline,
+            label: 'Bio',
+            value: bio,
+          ),
+
+          const SizedBox(height: 18),
+
+          _ActionButton(
+            icon: Icons.settings_outlined,
+            text: 'Settings',
+            onTap: onOpenSettings,
+            danger: false,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(Widget a, Widget b) {
+    return Row(
+      children: [
+        Expanded(child: a),
+        const SizedBox(width: 12),
+        Expanded(child: b),
+      ],
     );
   }
 }
 
-class _InfoCard extends StatelessWidget {
-  final List<Widget> children;
-  final EdgeInsetsGeometry padding;
+/* ======================= ACADEMIC SUMMARY ======================= */
 
-  const _InfoCard({
-    required this.children,
-    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+class _AcademicSummaryCard extends StatelessWidget {
+  final String currentYear;
+  final String gpa;
+  final String credits;
+
+  const _AcademicSummaryCard({
+    required this.currentYear,
+    required this.gpa,
+    required this.credits,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: padding,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F3F3),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade400),
+        color: const Color(0xFF2446C8),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
+        children: [
+          const Text(
+            'Academic Summary',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _SummaryItem(label: 'Current Year', value: currentYear),
+              ),
+              Expanded(
+                child: _SummaryItem(label: 'GPA', value: gpa),
+              ),
+              Expanded(
+                child: _SummaryItem(label: 'Credits', value: credits),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
-class _InfoRow extends StatelessWidget {
+/* ======================= SMALL WIDGETS ======================= */
+
+class _SummaryItem extends StatelessWidget {
   final String label;
   final String value;
 
-  const _InfoRow({
-    required this.label,
-    required this.value,
-  });
+  const _SummaryItem({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Text(
-            label,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: Colors.black54),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Flexible(
-          child: Text(
-            value,
-            textAlign: TextAlign.right,
+        Text(label,
             style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+                color: Colors.white70,
+                fontSize: 12,
+                fontWeight: FontWeight.w600)),
+        const SizedBox(height: 6),
+        Text(value,
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w800)),
+      ],
+    );
+  }
+}
+
+class _CardShell extends StatelessWidget {
+  final Widget child;
+
+  const _CardShell({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _Avatar extends StatelessWidget {
+  final String? imageUrl;
+
+  const _Avatar({required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = imageUrl != null && imageUrl!.trim().isNotEmpty;
+    return CircleAvatar(
+      radius: 46,
+      backgroundColor: const Color(0xFFE5E7EB),
+      backgroundImage: hasImage ? NetworkImage(imageUrl!) : null,
+      child: hasImage
+          ? null
+          : const Icon(Icons.person, size: 44, color: Colors.black54),
+    );
+  }
+}
+
+class _RoleChip extends StatelessWidget {
+  final String label;
+
+  const _RoleChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2446C8),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(label,
+          style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 12)),
+    );
+  }
+}
+
+class _InfoTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _InfoTile(
+      {required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F7FB),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE7E7F0)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: const Color(0xFF2446C8)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black54,
+                        fontWeight: FontWeight.w600)),
+                const SizedBox(height: 6),
+                Text(value,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w700)),
+              ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final VoidCallback onTap;
+  final bool danger;
+
+  const _ActionButton(
+      {required this.icon,
+        required this.text,
+        required this.onTap,
+        required this.danger});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = danger ? const Color(0xFFDC2626) : Colors.black87;
+    final border =
+    danger ? const Color(0xFFFCA5A5) : const Color(0xFFE5E7EB);
+
+    return SizedBox(
+      height: 48,
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon, size: 18, color: color),
+        label: Text(text,
+            style: TextStyle(color: color, fontWeight: FontWeight.w700)),
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: border),
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
-      ],
+      ),
     );
   }
 }

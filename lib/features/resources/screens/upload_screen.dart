@@ -73,53 +73,123 @@ class _UploadScreenState extends State<UploadScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Upload Resource (DEBUG)')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                controller: _titleController,
-                decoration: const InputDecoration(labelText: 'Title'),
-                validator: (v) =>
-                v == null || v.isEmpty ? 'Required' : null,
-              ),
-              const SizedBox(height: 12),
+      backgroundColor: const Color(0xFFF3F4F6),
 
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(labelText: 'Description'),
-              ),
-              const SizedBox(height: 12),
+      // ───── APP BAR ─────
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF2446C8),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Text('Upload Resource (DEBUG)'),
+      ),
 
-              TextFormField(
-                controller: _courseCodeController,
-                decoration: const InputDecoration(labelText: 'Course Code'),
-              ),
-              const SizedBox(height: 12),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  _field(
+                    controller: _titleController,
+                    label: 'Title',
+                    required: true,
+                  ),
+                  const SizedBox(height: 12),
 
-              TextFormField(
-                controller: _categoryController,
-                decoration: const InputDecoration(labelText: 'Category'),
-              ),
-              const SizedBox(height: 12),
+                  _field(
+                    controller: _descriptionController,
+                    label: 'Description',
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 12),
 
-              TextFormField(
-                controller: _departmentController,
-                decoration: const InputDecoration(labelText: 'Department'),
-              ),
-              const SizedBox(height: 24),
+                  _field(
+                    controller: _courseCodeController,
+                    label: 'Course Code',
+                  ),
+                  const SizedBox(height: 12),
 
-              ElevatedButton(
-                onPressed: _isSubmitting ? null : _submit,
-                child: _isSubmitting
-                    ? const CircularProgressIndicator()
-                    : const Text('Upload'),
+                  _field(
+                    controller: _categoryController,
+                    label: 'Category',
+                  ),
+                  const SizedBox(height: 12),
+
+                  _field(
+                    controller: _departmentController,
+                    label: 'Department',
+                  ),
+                  const SizedBox(height: 24),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: _isSubmitting ? null : _submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2446C8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: _isSubmitting
+                          ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                          : const Text(
+                        'Upload Resource',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _field({
+    required TextEditingController controller,
+    required String label,
+    bool required = false,
+    int maxLines = 1,
+  }) {
+    return TextFormField(
+      controller: controller,
+      maxLines: maxLines,
+      validator: required
+          ? (v) => v == null || v.isEmpty ? 'Required' : null
+          : null,
+      decoration: InputDecoration(
+        labelText: label,
+        filled: true,
+        fillColor: const Color(0xFFF7F7FB),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
         ),
       ),
     );
