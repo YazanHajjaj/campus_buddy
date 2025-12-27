@@ -1,148 +1,144 @@
+import 'dart:io';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
-class UploadScreen extends StatefulWidget {
-  const UploadScreen({super.key});
+class ResourceUploadScreen extends StatefulWidget {
+  const ResourceUploadScreen({super.key});
 
   @override
-  State<UploadScreen> createState() => _UploadScreenState();
+  State<ResourceUploadScreen> createState() => _ResourceUploadScreenState();
 }
 
-class _UploadScreenState extends State<UploadScreen> {
-  final _formKey = GlobalKey<FormState>();
+class _ResourceUploadScreenState extends State<ResourceUploadScreen> {
+  final _titleController = TextEditingController();
+  final _descController = TextEditingController();
+  final _courseController = TextEditingController();
 
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
+  String _category = 'Math';
+  File? _pickedFile;
+  bool _uploading = false;
 
-  String? _selectedFileName; // fake file name for now
+  Future<void> _pickPdf() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+    );
 
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
-  }
+    if (result == null) return;
 
-  void _fakePickFile() {
-    // Later you will use a real file picker.
     setState(() {
-      _selectedFileName = 'example.pdf';
+      _pickedFile = File(result.files.single.path!);
     });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Fake file selected: example.pdf')),
-    );
   }
 
-  void _onUploadPressed() {
-    // 1) Validate text fields
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+  Future<void> _upload() async {
+    if (_pickedFile == null || _titleController.text.isEmpty) return;
 
-    // 2) Check file "selected"
-    if (_selectedFileName == null) {
+    setState(() => _uploading = true);
+
+    try {
+      final fileName = DateTime.now().millisecondsSinceEpoch.toString();
+      final storagePath = 'resources/$fileName.pdf';
+
+      // Upload to Firebase Storage
+      final ref = FirebaseStorage.instance.ref(storagePath);
+      await ref.putFile(_pickedFile!);
+      final downloadUrl = await ref.getDownloadURL();
+
+      // Save Firestore document
+      await FirebaseFirestore.instance.collection('resources').add({
+        'title': _titleController.text.trim(),
+        'description': _descController.text.trim(),
+        'category': _category,
+        'courseCode': _courseController.text.trim(),
+        'fileUrl': downloadUrl,
+        'storagePath': storagePath,
+        'mimeType': 'application/pdf',
+        'sizeInBytes': await _pickedFile!.length(),
+        'tags': [],
+        'department': 'COE',
+
+        // Counters
+        'viewCount': 0,
+        'downloadCount': 0,
+
+        // Visibility
+        'isActive': true,
+        'isPublic': true,
+
+        // Meta
+        'uploaderUserId': 'testUser123',
+        'uploaderDisplayName': 'Test User',
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+        'lastAccessedAt': null,
+      });
+
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a file before uploading')),
+        SnackBar(content: Text('Upload failed: $e')),
       );
-      return;
+    } finally {
+      setState(() => _uploading = false);
     }
-
-    // 3) Placeholder for real upload logic
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Upload logic will be implemented later')),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Upload Resource'),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Resource Details',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Title
-                TextFormField(
-                  controller: _titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Title',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Title cannot be empty';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Description
-                TextFormField(
-                  controller: _descriptionController,
-                  minLines: 3,
-                  maxLines: 5,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                    alignLabelWithHint: true,
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // File selector
-                const Text(
-                  'File',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _selectedFileName ?? 'No file selected',
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: _fakePickFile,
-                      child: const Text('Select File'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-
-                // Buttons
-                ElevatedButton(
-                  onPressed: _onUploadPressed,
-                  child: const Text('Upload'),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('Cancel'),
-                ),
-              ],
+      appBar: AppBar(title: const Text('Upload Resource')),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: ListView(
+          children: [
+            TextField(
+              controller: _titleController,
+              decoration: const InputDecoration(labelText: 'Title'),
             ),
-          ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _descController,
+              decoration: const InputDecoration(labelText: 'Description'),
+              maxLines: 3,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _courseController,
+              decoration: const InputDecoration(labelText: 'Course Code'),
+            ),
+            const SizedBox(height: 8),
+
+            DropdownButtonFormField<String>(
+              value: _category,
+              items: const [
+                DropdownMenuItem(value: 'Math', child: Text('Math')),
+                DropdownMenuItem(value: 'Physics', child: Text('Physics')),
+                DropdownMenuItem(value: 'Programming', child: Text('Programming')),
+              ],
+              onChanged: (v) => setState(() => _category = v!),
+              decoration: const InputDecoration(labelText: 'Category'),
+            ),
+
+            const SizedBox(height: 16),
+
+            ElevatedButton.icon(
+              onPressed: _pickPdf,
+              icon: const Icon(Icons.attach_file),
+              label: Text(_pickedFile == null ? 'Pick PDF' : 'PDF Selected'),
+            ),
+
+            const SizedBox(height: 24),
+
+            ElevatedButton.icon(
+              onPressed: _uploading ? null : _upload,
+              icon: const Icon(Icons.cloud_upload),
+              label: Text(_uploading ? 'Uploading...' : 'Upload'),
+            ),
+          ],
         ),
       ),
     );

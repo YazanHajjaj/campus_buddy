@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'resource_upload_screen.dart';
+import 'resource_pdf_viewer.dart';
 
 class ResourceListScreen extends StatefulWidget {
   const ResourceListScreen({super.key});
@@ -8,35 +12,20 @@ class ResourceListScreen extends StatefulWidget {
 }
 
 class _ResourceListScreenState extends State<ResourceListScreen> {
-  final List<_DummyResource> _dummyResources = const [
-    _DummyResource(
-      title: 'Calculus Summary Notes',
-      description: 'Summary of chapters 1–3 with solved examples.',
-      tags: ['Math', 'Calculus'],
-      course: 'MATH101',
-      uploadedAt: 'Nov 2025',
-    ),
-    _DummyResource(
-      title: 'Programming I – Midterm Guide',
-      description: 'Important theory + sample questions.',
-      tags: ['Programming'],
-      course: 'CS101',
-      uploadedAt: 'Oct 2025',
-    ),
-    _DummyResource(
-      title: 'Physics Lab Manual',
-      description: 'Procedures and pre-lab questions.',
-      tags: ['Physics', 'Lab'],
-      course: 'PHYS105',
-      uploadedAt: 'Sep 2025',
-    ),
-  ];
+  String _selectedCategory = 'All';
 
-  final List<String> _sortOptions = const ['Newest', 'Most Popular'];
-  final List<String> _filterTags = const ['All', 'Math', 'Programming', 'Physics', 'Lab'];
+  Stream<QuerySnapshot> _query() {
+    Query ref = FirebaseFirestore.instance
+        .collection('resources')
+        .where('isActive', isEqualTo: true)
+        .where('isPublic', isEqualTo: true);
 
-  String _selectedSort = 'Newest';
-  String _selectedTag = 'All';
+    if (_selectedCategory != 'All') {
+      ref = ref.where('category', isEqualTo: _selectedCategory);
+    }
+
+    return ref.orderBy('createdAt', descending: true).snapshots();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,203 +34,244 @@ class _ResourceListScreenState extends State<ResourceListScreen> {
         title: const Text('Resources'),
       ),
 
-      floatingActionButton: FloatingActionButton.extended(
+      // =====================
+      // UPLOAD BUTTON
+      // =====================
+      floatingActionButton: FloatingActionButton(
         onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const ResourceUploadScreen(),
+            ),
+          );
         },
-        icon: const Icon(Icons.upload_file),
-        label: const Text('Upload'),
+        child: const Icon(Icons.upload),
       ),
 
       body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 12),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+          // =====================
+          // FILTER BAR
+          // =====================
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Resources',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                Row(
-                  children: [
-                    const Text('Sort by:  '),
-                    DropdownButton<String>(
-                      value: _selectedSort,
-                      items: _sortOptions
-                          .map(
-                            (s) => DropdownMenuItem<String>(
-                              value: s,
-                              child: Text(s),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setState(() {
-                          _selectedSort = value;
-                        });
-                      },
-                    ),
-                  ],
-                ),
+                _filterChip('All'),
+                _filterChip('Math'),
+                _filterChip('Physics'),
+                _filterChip('Programming'),
               ],
             ),
           ),
 
-          const SizedBox(height: 8),
+          const Divider(height: 1),
 
-          SizedBox(
-            height: 40,
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              scrollDirection: Axis.horizontal,
-              itemBuilder: (context, index) {
-                final label = _filterTags[index];
-                final bool isSelected = _selectedTag == label;
-                return ChoiceChip(
-                  label: Text(label),
-                  selected: isSelected,
-                  onSelected: (_) {
-                    setState(() {
-                      _selectedTag = label;                 
-                    });
-                  },
-                );
-              },
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemCount: _filterTags.length,
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
+          // =====================
+          // RESOURCE LIST
+          // =====================
           Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              itemBuilder: (context, index) {
-                final resource = _dummyResources[index];
-                return _ResourceCard(
-                  resource: resource,
-                  onTap: () {
-                    showDialog<void>(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                        title: Text(resource.title),
-                        content: Text(resource.description),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Close'),
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _query(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Error:\n${snapshot.error}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
+                }
+
+                final docs = snapshot.data?.docs ?? [];
+
+                if (docs.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'No resources found',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: docs.length,
+                  itemBuilder: (context, index) {
+                    final doc = docs[index];
+                    final data = doc.data() as Map<String, dynamic>;
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: InkWell(
+                        onTap: () async {
+                          // =====================
+                          // VIEW COUNT
+                          // =====================
+                          await FirebaseFirestore.instance
+                              .collection('resources')
+                              .doc(doc.id)
+                              .update({
+                            'viewCount': FieldValue.increment(1),
+                          });
+
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ResourceDetailsScreen(
+                                resource: data,
+                                resourceId: doc.id,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.picture_as_pdf, size: 36),
+                              const SizedBox(width: 12),
+
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      data['title'] ?? 'Untitled',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      data['description'] ?? '',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'Category: ${data['category'] ?? '—'}',
+                                      style:
+                                      const TextStyle(fontSize: 12),
+                                    ),
+                                    Text(
+                                      'Course: ${data['courseCode'] ?? '—'}',
+                                      style:
+                                      const TextStyle(fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     );
                   },
                 );
               },
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemCount: _dummyResources.length,
             ),
           ),
         ],
       ),
     );
   }
+
+  // =====================
+  // FILTER CHIP
+  // =====================
+  Widget _filterChip(String label) {
+    final bool selected = _selectedCategory == label;
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: selected,
+        onSelected: (_) {
+          setState(() {
+            _selectedCategory = label;
+          });
+        },
+      ),
+    );
+  }
 }
 
-class _DummyResource {
-  final String title;
-  final String description;
-  final List<String> tags;
-  final String course;
-  final String uploadedAt;
+// =======================================================
+// RESOURCE DETAILS SCREEN
+// =======================================================
 
-  const _DummyResource({
-    required this.title,
-    required this.description,
-    required this.tags,
-    required this.course,
-    required this.uploadedAt,
-  });
-}
+class ResourceDetailsScreen extends StatelessWidget {
+  final Map<String, dynamic> resource;
+  final String resourceId;
 
-class _ResourceCard extends StatelessWidget {
-  final _DummyResource resource;
-  final VoidCallback? onTap;
-
-  const _ResourceCard({
+  const ResourceDetailsScreen({
+    super.key,
     required this.resource,
-    this.onTap,
+    required this.resourceId,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      elevation: 1.5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Title
-              Text(
-                resource.title,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(resource['title'] ?? 'Resource'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: ListView(
+          children: [
+            Text(
+              resource['title'] ?? '',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(height: 6),
+            ),
+            const SizedBox(height: 12),
+            Text(resource['description'] ?? ''),
+            const SizedBox(height: 12),
+            Text('Category: ${resource['category']}'),
+            Text('Course: ${resource['courseCode']}'),
+            const SizedBox(height: 24),
 
-              Text(
-                resource.description,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 8),
+            // =====================
+            // OPEN PDF (TRACKED)
+            // =====================
+            ElevatedButton.icon(
+              onPressed: () async {
+                await FirebaseFirestore.instance
+                    .collection('resources')
+                    .doc(resourceId)
+                    .update({
+                  'openCount': FieldValue.increment(1),
+                });
 
-              Wrap(
-                spacing: 6,
-                runSpacing: -6,
-                children: [
-                  for (final tag in resource.tags)
-                    Chip(
-                      label: Text(tag),
-                      visualDensity: VisualDensity.compact,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    resource.course,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[700],
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ResourcePdfViewerScreen(
+                      url: resource['fileUrl'],
+                      title: resource['title'],
                     ),
                   ),
-                  Text(
-                    resource.uploadedAt,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+                );
+              },
+              icon: const Icon(Icons.picture_as_pdf),
+              label: const Text('Open PDF'),
+            ),
+          ],
         ),
       ),
     );
