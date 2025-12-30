@@ -14,6 +14,10 @@ import 'debug/developer_tools_screen.dart';
 // Admin
 import 'features/admin/screens/admin_dashboard_screen.dart';
 
+// Phase 9 (Gamification UI)
+import 'features/gamification/screens/leaderboard_screen.dart';
+import 'features/gamification/screens/reward_screen.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -21,6 +25,7 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  // Optional: keep anonymous sign-in if you want the app always “signed in”
   if (FirebaseAuth.instance.currentUser == null) {
     await FirebaseAuth.instance.signInAnonymously();
   }
@@ -91,31 +96,64 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.verified_user, size: 60),
-            const SizedBox(height: 16),
-            Text("Signed In", style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 12),
-            Text("UID:\n${user?.uid ?? "-"}", textAlign: TextAlign.center),
-            const SizedBox(height: 8),
-            Text(
-              "Anonymous User: ${user?.isAnonymous ?? false}",
-              style: const TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              icon: const Icon(Icons.admin_panel_settings),
-              label: const Text("Open Admin Dashboard"),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
-                );
-              },
-            ),
-          ],
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.verified_user, size: 60),
+              const SizedBox(height: 16),
+              Text("Signed In", style: Theme.of(context).textTheme.headlineSmall),
+              const SizedBox(height: 12),
+              Text("UID:\n${user?.uid ?? "-"}", textAlign: TextAlign.center),
+              const SizedBox(height: 8),
+              Text(
+                "Anonymous User: ${user?.isAnonymous ?? false}",
+                style: const TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 24),
+
+              // Admin
+              FilledButton.icon(
+                icon: const Icon(Icons.admin_panel_settings),
+                label: const Text("Open Admin Dashboard"),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              // Phase 9 UI: Leaderboard
+              FilledButton.icon(
+                icon: const Icon(Icons.leaderboard),
+                label: const Text("Open Leaderboard ()"),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LeaderboardScreen()),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              // Phase 9 UI: Rewards
+              OutlinedButton.icon(
+                icon: const Icon(Icons.emoji_events),
+                label: const Text("Open Rewards "),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const RewardScreen()),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
