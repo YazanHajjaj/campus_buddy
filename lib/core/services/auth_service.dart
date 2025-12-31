@@ -10,7 +10,8 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'firestore_user_service.dart';
 import '../models/auth_user.dart';
 
-/// Authentication wrapper around FirebaseAuth with Firestore user sync.
+/// Authentication service wrapping FirebaseAuth
+/// with Firestore user synchronization.
 class AuthService {
   AuthService._internal();
   static final AuthService _instance = AuthService._internal();
@@ -19,10 +20,10 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirestoreUserService _userService = FirestoreUserService();
 
-  /// Stream of raw FirebaseAuth user objects.
+  /// Firebase authentication state stream.
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  /// Stream of AuthUser profiles synced with Firestore.
+  /// Firestore-backed AuthUser stream.
   Stream<AuthUser?> get authUserChanges {
     return _auth.authStateChanges().asyncMap((user) async {
       if (user == null) return null;
@@ -30,14 +31,10 @@ class AuthService {
     });
   }
 
-  /// Currently signed-in Firebase user.
   User? get currentUser => _auth.currentUser;
 
-  // ---------------------------------------------------------------------------
-  // AUTH METHODS
-  // ---------------------------------------------------------------------------
+  // ---------------- Authentication ----------------
 
-  /// Signs in anonymously and ensures a Firestore user exists.
   Future<User?> signInAnonymously() async {
     try {
       final credential = await _auth.signInAnonymously();
@@ -49,16 +46,14 @@ class AuthService {
 
       return user;
     } on FirebaseAuthException catch (e, stack) {
-      debugPrint('signInAnonymously error: ${e.code} – ${e.message}');
+      debugPrint('signInAnonymously error: ${e.code}');
       debugPrint(stack.toString());
       rethrow;
     }
   }
 
-  /// Convenience alias for guest login used by the UI.
   Future<User?> signInAsGuest() => signInAnonymously();
 
-  /// Email/password sign-in.
   Future<User?> signInWithEmailAndPassword({
     required String email,
     required String password,
@@ -70,22 +65,18 @@ class AuthService {
       );
 
       final user = credential.user;
-
       if (user != null) {
         await _userService.upsertUserFromFirebaseUser(user);
       }
 
       return user;
     } on FirebaseAuthException catch (e, stack) {
-      debugPrint(
-        'signInWithEmailAndPassword error: ${e.code} – ${e.message}',
-      );
+      debugPrint('signInWithEmailAndPassword error: ${e.code}');
       debugPrint(stack.toString());
       rethrow;
     }
   }
 
-  /// Creates an account with email/password and syncs Firestore.
   Future<User?> registerWithEmailAndPassword({
     required String email,
     required String password,
@@ -97,39 +88,33 @@ class AuthService {
       );
 
       final user = credential.user;
-
       if (user != null) {
         await _userService.upsertUserFromFirebaseUser(user);
       }
 
       return user;
     } on FirebaseAuthException catch (e, stack) {
-      debugPrint(
-        'registerWithEmailAndPassword error: ${e.code} – ${e.message}',
-      );
+      debugPrint('registerWithEmailAndPassword error: ${e.code}');
       debugPrint(stack.toString());
       rethrow;
     }
   }
 
-  /// Google sign-in (web + mobile) and Firestore sync.
   Future<User?> signInWithGoogle() async {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
-      throw Exception('Google Sign-In not configured on iOS');
+      throw Exception('Google Sign-In not supported on iOS');
     }
 
     try {
       UserCredential credential;
 
       if (kIsWeb) {
-        final googleProvider = GoogleAuthProvider();
-        credential = await _auth.signInWithPopup(googleProvider);
+        credential = await _auth.signInWithPopup(GoogleAuthProvider());
       } else {
         final googleUser = await GoogleSignIn().signIn();
         if (googleUser == null) return null;
 
         final googleAuth = await googleUser.authentication;
-
         final oauthCredential = GoogleAuthProvider.credential(
           accessToken: googleAuth.accessToken,
           idToken: googleAuth.idToken,
@@ -145,13 +130,11 @@ class AuthService {
 
       return user;
     } catch (e, stack) {
-      debugPrint('signInWithGoogle error: $e');
+      debugPrint('signInWithGoogle error');
       debugPrint(stack.toString());
       rethrow;
     }
   }
-
-  // ----- helpers used for Apple Sign-in -----
 
   String _generateNonce([int length = 32]) {
     const charset =
@@ -165,11 +148,9 @@ class AuthService {
 
   String _sha256ofString(String input) {
     final bytes = utf8.encode(input);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
+    return sha256.convert(bytes).toString();
   }
 
-  /// Apple sign-in (iOS/macOS only) and Firestore sync.
   Future<User?> signInWithApple() async {
     try {
       final rawNonce = _generateNonce();
@@ -198,22 +179,20 @@ class AuthService {
 
       return user;
     } on FirebaseAuthException catch (e, stack) {
-      debugPrint('signInWithApple error: ${e.code} – ${e.message}');
+      debugPrint('signInWithApple error: ${e.code}');
       debugPrint(stack.toString());
       rethrow;
     } catch (e, stack) {
-      debugPrint('signInWithApple unknown error: $e');
+      debugPrint('signInWithApple error');
       debugPrint(stack.toString());
       rethrow;
     }
   }
 
-  /// Signs out the current Firebase user.
   Future<void> signOut() async {
     await _auth.signOut();
   }
 
-  /// Loads the Firestore AuthUser for the current Firebase user.
   Future<AuthUser?> getCurrentAuthUser() async {
     final user = _auth.currentUser;
     if (user == null) return null;

@@ -1,0 +1,374 @@
+{
+  "auth.signIn": "Sign In",
+  "auth.signUp": "Sign Up",
+  "auth.signOut": "Sign Out",
+  "auth.email": "Email",
+  "auth.password": "Password",
+  "auth.forgotPassword": "Forgot password?",
+
+  "common.save": "Save",
+  "common.cancel": "Cancel",
+  "common.delete": "Delete",
+  "common.confirm": "Confirm",
+  "common.accept": "Accept",
+  "common.reject": "Reject",
+  "common.loading": "Loading...",
+  "common.error": "Something went wrong",
+  "common.required": "This field is required",
+  "common.upload": "Upload",
+  "common.uploading": "Uploading...",
+  "common.title": "Title",
+  "common.description": "Description",
+  "common.category": "Category",
+  "common.student": "Student",
+  "common.awesome": "Awesome!",
+  "common.unknown": "Unknown",
+
+  "nav.home": "Home",
+  "nav.resources": "Resources",
+  "nav.events": "Events",
+  "nav.mentorship": "Mentorship",
+  "nav.profile": "Profile",
+  "nav.settings": "Settings",
+
+  "home.welcome": "Welcome",
+  "home.trackProgress": "Track your academic progress",
+  "home.studyGroups": "Study Groups",
+  "home.studyGroupsHint": "Join or create groups to study together",
+
+  "resources.title": "Resources",
+  "resources.upload": "Upload Resource",
+  "resources.uploadFile": "Upload file",
+  "resources.pickPdf": "Pick PDF",
+  "resources.pdfSelected": "PDF selected",
+  "resources.courseCode": "Course Code",
+  "resources.search": "Search resources",
+  "resources.empty": "No resources found",
+  "resources.noItems": "No resources available",
+
+  "events.title": "Events",
+  "events.upcoming": "Upcoming events",
+  "events.create": "Create event",
+  "events.rsvp": "RSVP",
+  "events.capacityFull": "Event is full",
+  "events.noEvents": "No events available",
+
+  "mentorship.title": "Mentorship",
+  "mentorship.continueAs": "Continue as",
+  "mentorship.student": "Student",
+  "mentorship.studentSubtitle": "Find mentors & request guidance",
+  "mentorship.mentor": "Mentor",
+  "mentorship.mentorSubtitle": "Manage requests & students",
+  "mentorship.findMentor": "Find a Mentor",
+  "mentorship.noMentors": "No mentors available right now",
+  "mentorship.available": "Available ({0}/{1})",
+  "mentorship.full": "Fully booked",
+  "mentorship.noRatings": "No ratings yet",
+
+  "mentorship.request": "Request mentorship",
+  "mentorship.requestSent": "Request sent",
+  "mentorship.requestSentTitle": "Mentorship Request Sent",
+  "mentorship.requestSentSubtitle": "You will be notified once the mentor responds",
+  "mentorship.backToMentorship": "Back to Mentorship",
+  "mentorship.goHome": "Go to Home",
+
+  "mentorship.incoming": "Incoming Requests",
+  "mentorship.noRequests": "No incoming requests",
+  "mentorship.noRequestsHint": "Mentorship requests from students will appear here",
+
+  "mentorship.myRequests": "My Mentorship Requests",
+  "mentorship.noMyRequests": "You haven’t sent any mentorship requests yet",
+
+  "mentorship.activeMentorships": "Active Mentorships",
+  "mentorship.noActive": "No active mentorships",
+  "mentorship.noActiveSubtitle": "Accepted mentorships will appear here",
+
+  "mentorship.rateMentor": "Rate mentor",
+  "mentorship.howWasMentor": "How was your mentorship experience?",
+  "mentorship.optionalComment": "Optional comment",
+  "mentorship.ratingRequired": "Please select a rating before submitting",
+
+  "mentorship.createProfile": "Create Mentor Profile",
+  "mentorship.editProfile": "Edit Mentor Profile",
+  "mentorship.expertise": "Expertise",
+  "mentorship.expertiseHint": "Add a skill or subject",
+  "mentorship.expertiseRequired": "Please add at least one expertise",
+  "mentorship.expertiseExists": "This expertise is already added",
+  "mentorship.noMentorProfile": "Mentor profile not found",
+  "mentorship.noMentorProfileHint": "Create a mentor profile to receive requests",
+
+  "studyGroups.title": "Study Groups",
+  "studyGroups.create": "Create Group",
+  "studyGroups.join": "Join Group",
+  "studyGroups.leave": "Leave Group",
+  "studyGroups.empty": "No study groups yet",
+  "studyGroups.emptyHint": "Create or join a study group to get started",
+
+  "profile.title": "Profile",
+  "profile.edit": "Edit Profile",
+  "profile.email": "Email",
+  "profile.role": "Role",
+  "profile.saveChanges": "Save changes",
+  "profile.basicInfo": "Basic Information",
+  "profile.fullName": "Full name",
+  "profile.department": "Department",
+  "profile.bio": "Bio",
+  "profile.changePhoto": "Change photo (soon)",
+
+  "settings.title": "Settings",
+  "settings.about": "About",
+  "settings.clearCache": "Clear cache",
+  "settings.language": "Language",
+
+  "accessibility.title": "Accessibility",
+  "accessibility.highContrast": "High contrast mode",
+
+  "notifications.title": "Notifications",
+  "notifications.settings": "Notification settings",
+  "notifications.enableEvents": "Event notifications",
+  "notifications.enableMentorship": "Mentorship notifications",
+  "notifications.enableStudyGroups": "Study group notifications",
+  "notifications.enableGamification": "Gamification notifications",
+
+  "gamification.title": "Achievements",
+  "gamification.levelUp": "Level up!",
+  "gamification.levelReached": "You reached",
+  "gamification.xp": "XP earned",
+  "gamification.badgeUnlocked": "Badge unlocked",
+  "gamification.myBadges": "My Badges",
+  "gamification.noBadges": "No badges yet",
+  "gamification.noBadgesHint": "Earn badges by participating in campus activities",
+  "gamification.leaderboard": "Leaderboard",
+  "gamification.rewards": "Rewards",
+  "gamification.topStudents": "Top Students",
+  "gamification.leaderboardDescription": "Rankings are based on real XP earned in the app",
+  "gamification.viewBadges": "View My Badges",
+  "gamification.noLeaderboardData": "No leaderboard data yet",
+
+  "admin.dashboard": "Admin Dashboard",
+  "admin.actions": "Admin Actions",
+  "admin.manageEvents": "Manage Events",
+  "admin.manageEventsDesc": "Approve, edit, or remove events",
+  "admin.manageUsers": "Manage Users",
+  "admin.manageUsersDesc": "View and manage user accounts",
+  "admin.manageResources": "Manage Resources",
+  "admin.manageResourcesDesc": "Review uploaded resources",
+  "admin.noEvents": "No events found",
+  "admin.noEventsHint": "Events created by students or admins will appear here",
+  "admin.featureFutureWork": "This feature is planned for a future update",
+  "admin.futureWorkNote": "Some admin features are planned for future development",
+
+  "error.generic": "An unexpected error occurred",
+  "error.network": "Network error",
+  "error.unauthorized": "Unauthorized access",
+
+
+  "common.export": "Export",
+  "common.close": "Close",
+
+  "admin.analyticsDebug": "Analytics Debug",
+
+  "analytics.student": "Student Analytics",
+  "analytics.studentUid": "Student UID",
+  "analytics.loadStudent": "Load Student Analytics",
+  "analytics.exportStudent": "Export Student CSV",
+
+  "analytics.admin": "Admin Analytics",
+  "analytics.loadAdmin": "Load Admin Stats",
+  "analytics.exportAdmin": "Export Admin CSV",
+
+  "notifications.debugTools": "Notifications Debug",
+  "notifications.events": "Events",
+  "notifications.mentorship": "Mentorship",
+  "notifications.studyGroups": "Study Groups",
+  "notifications.gamification": "Gamification",
+  "notifications.system": "System",
+
+  "notifications.eventCreated": "Event Created",
+  "notifications.eventReminder": "Event Reminder",
+  "notifications.mentorshipRequest": "New Mentorship Request",
+  "notifications.mentorshipMessage": "Mentorship Message",
+  "notifications.studyGroupCreated": "Study Group Created",
+  "notifications.studyGroupMessage": "Study Group Message",
+  "notifications.levelUp": "Level Up",
+  "notifications.badgeUnlocked": "Badge Unlocked",
+  "notifications.adminAnnouncement": "Admin Announcement",
+  "notifications.profileReminder": "Profile Reminder",
+
+  "notifications.payload": "Notification Payload",
+
+  "profile.debugTools": "Profile Debug Tools",
+  "profile.userUid": "User UID (from auth)",
+  "profile.fetch": "Fetch Profile",
+  "profile.listen": "Live Listen",
+  "profile.fetched": "Fetched Profile",
+  "profile.notFound": "No profile found",
+
+  "profile.newName": "New Name",
+  "profile.newBio": "New Bio",
+  "profile.newDepartment": "New Department",
+
+  "profile.update": "Update Fields",
+  "profile.uploadImage": "Upload Image",
+  "profile.deleteImage": "Delete Image",
+
+  "profile.updated": "Profile updated",
+  "profile.imageUploaded": "Image uploaded",
+  "profile.imageDeleted": "Profile image deleted",
+
+  "devTools.title": "Developer Tools",
+
+  "devTools.firebase": "Firebase",
+  "devTools.firebaseHealth": "Firebase Health Check",
+  "devTools.firebaseHealthDesc": "Verify Auth, Firestore, Storage",
+
+  "devTools.storage": "Storage",
+  "devTools.storageTest": "Storage Upload Test",
+  "devTools.storageTestDesc": "Pick, upload, get URL",
+
+  "devTools.resources": "Resources",
+  "devTools.resourceList": "Resource List (Live)",
+  "devTools.resourceListDesc": "Firestore, filters, viewer",
+  "devTools.resourceUpload": "Upload Resource",
+  "devTools.resourceUploadDesc": "Firebase Storage and Firestore",
+  "devTools.resourceBackend": "Resource Backend Test",
+  "devTools.resourceBackendDesc": "CRUD and counters",
+
+  "devTools.profile": "Profile Backend",
+  "devTools.profileTest": "Profile Backend Test",
+  "devTools.profileTestDesc": "Firestore, storage, streams",
+
+  "devTools.events": "Events Backend",
+  "devTools.eventsTest": "Event Backend Test",
+  "devTools.eventsTestDesc": "Create, RSVP, streams, capacity",
+
+  "devTools.analytics": "Analytics Backend",
+  "devTools.analyticsTest": "Analytics Backend Test",
+  "devTools.analyticsTestDesc": "Student and admin stats",
+
+  "devTools.notifications": "Notifications",
+  "devTools.notificationsTest": "Notifications Debug",
+  "devTools.notificationsTestDesc": "Payloads and routing",
+
+  "devTools.appInfo": "App Info",
+  "devTools.buildMode": "Build Mode",
+  "devTools.platform": "Platform",
+
+  "firebase.healthCheck": "Firebase Health Check",
+  "firebase.systemStatus": "Firebase System Status",
+
+  "firebase.core": "Firebase Core",
+  "firebase.auth": "Auth (Anonymous Login)",
+  "firebase.firestoreWrite": "Firestore Write",
+  "firebase.firestoreRead": "Firestore Read",
+
+  "firebase.statusPending": "Pending",
+  "firebase.statusChecking": "Checking…",
+  "firebase.statusOk": "OK",
+  "firebase.statusFailed": "Failed",
+
+  "firebase.readDocument": "Read Document",
+  "firebase.runCheck": "Run Health Check",
+  "firebase.openStorageTest": "Open Storage Test Screen",
+
+
+  "storage.testTitle": "Firebase Storage Test",
+  "storage.pickAndUpload": "Pick File & Upload (Real Device)",
+  "storage.uploadDummy": "Upload Dummy File (Simulator)",
+  "storage.uploading": "Uploading...",
+  "storage.uploadSuccess": "Upload successful",
+  "storage.uploadFailed": "Upload failed",
+  "storage.downloadUrl": "Download URL",
+  "storage.idle": "No uploads yet",
+
+  "resourceTest.title": "Resource Backend Test",
+  "resourceTest.waiting": "Waiting...",
+  "resourceTest.creating": "Creating test resource...",
+  "resourceTest.success": "Success\nCreated ID:",
+  "resourceTest.error": "Error",
+  "resources.debugUploadTitle": "Upload Resource (Debug)",
+  "resources.debugSuccess": "Resource uploaded (debug)",
+  "resources.debugFailed": "Upload failed",
+
+  "gamification.levelUpTitle": "Level Up!",
+  "gamification.levelUpBody": "You reached level {level}",
+  "gamification.badgeUnlockedTitle": "Badge Unlocked",
+  "gamification.badgeUnlockedBody": "You unlocked the {badge} badge",
+
+
+  "badges.firstResource.title": "First Contribution",
+  "badges.firstResource.desc": "Uploaded your first resource",
+
+  "badges.resourceExplorer.title": "Resource Explorer",
+  "badges.resourceExplorer.desc": "Viewed 20 resources",
+
+  "badges.firstEvent.title": "First Event",
+  "badges.firstEvent.desc": "Attended your first event",
+
+  "badges.eventExplorer.title": "Event Explorer",
+  "badges.eventExplorer.desc": "Attended 5 events",
+
+  "badges.mentorBuddy.title": "Mentor Buddy",
+  "badges.mentorBuddy.desc": "Completed your first mentorship session",
+
+  "badges.mentorshipActive.title": "Mentorship Active",
+  "badges.mentorshipActive.desc": "Completed 5 mentorship sessions",
+
+  "badges.studyGroup.title": "Study Group Member",
+  "badges.studyGroup.desc": "Joined your first study group",
+
+  "badges.studyGroupChat.title": "Group Contributor",
+  "badges.studyGroupChat.desc": "Sent 50 study group messages",
+
+  "badges.streak7.title": "Consistent Learner",
+  "badges.streak7.desc": "Active for 7 consecutive days",
+
+  "badges.streak30.title": "Dedicated Scholar",
+  "badges.streak30.desc": "Active for 30 consecutive days",
+
+  "xp.resourceViewed": "Viewed a resource",
+  "xp.resourceDownloaded": "Downloaded a resource",
+  "xp.resourceUploaded": "Uploaded a resource",
+
+  "xp.eventRsvp": "RSVP’d to an event",
+  "xp.eventAttended": "Attended an event",
+
+  "xp.mentorshipRequestSent": "Sent a mentorship request",
+  "xp.mentorshipSessionCompleted": "Completed a mentorship session",
+  "xp.mentorshipChatMessage": "Sent a mentorship message",
+
+  "xp.studyGroupJoined": "Joined a study group",
+  "xp.studyGroupChatMessage": "Sent a study group message",
+
+  "xp.dailyActive": "Active day bonus",
+  "xp.streak7": "7-day streak bonus",
+  "xp.streak30": "30-day streak bonus",
+
+  "profile.roleStudent": "Student",
+  "profile.studentId": "Student ID",
+  "profile.phone": "Phone",
+  "profile.year": "Academic Year",
+  "profile.academicSummary": "Academic Summary",
+  "profile.gpa": "GPA",
+  "profile.credits": "Credits",
+  "profile.placeholderName": "Your Name",
+  "profile.placeholderEmail": "email@example.com",
+  "profile.notSet": "—",
+  "common.settings": "Settings",
+
+  "gamification": {
+    "myBadges": "My Badges",
+    "noBadges": "No badges yet",
+    "noBadgesHint": "Participate in events and activities to earn badges.",
+
+    "rankUpTitle": "Rank Improved!",
+    "rankUpBody": "You are now ranked #{rank} on the leaderboard.",
+
+    "topRankTitle": "Leaderboard Achievement",
+    "topRankBody": "You entered the top #{rank}. Great job!"
+  }
+}
+
+
+
+

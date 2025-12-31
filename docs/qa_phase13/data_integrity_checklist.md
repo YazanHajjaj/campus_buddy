@@ -26,3 +26,7 @@ WAIT — run only after analytics + gamification are stable.
 - Screenshots from UI
 - Firestore sample documents (redact private info)
 - Notes about discrepancies and steps to reproduce
+## Notes
+- Validation is manual by design to catch aggregation and caching issues.
+- Any mismatch is reported with Firestore path and timestamp.
+- No data correction is performed in this phase; issues are reported only.

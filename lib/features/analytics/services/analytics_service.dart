@@ -4,14 +4,18 @@ import '../models/student_analytics.dart';
 import '../models/admin_stats.dart';
 import '../models/usage_metrics.dart';
 
+/// Central service for analytics aggregation and logging.
+/// Reads from existing Firestore collections and derives metrics.
 class AnalyticsService {
   final FirebaseFirestore _firestore;
 
   AnalyticsService({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
+  // ───────────────── STUDENT ANALYTICS ─────────────────
+
   /// Aggregates analytics data for a single student.
-  /// All values are derived from existing collections.
+  /// All values are derived (no stored analytics documents).
   Future<StudentAnalytics> getStudentAnalytics(String uid) async {
     // Resources uploaded by the student
     final resourcesSnapshot = await _firestore
@@ -47,7 +51,7 @@ class AnalyticsService {
       }
     }
 
-    // Mentorship sessions
+    // Completed mentorship sessions
     final mentorshipSnapshot = await _firestore
         .collection('mentorship_sessions')
         .where('studentId', isEqualTo: uid)
@@ -76,7 +80,7 @@ class AnalyticsService {
       }
     }
 
-    // User activity
+    // Last user activity (based on last login)
     final userDoc = await _firestore.collection('users').doc(uid).get();
     DateTime? lastActiveAt;
 
@@ -111,7 +115,9 @@ class AnalyticsService {
     );
   }
 
-  /// Aggregates system-wide analytics for admins.
+  // ───────────────── ADMIN ANALYTICS ─────────────────
+
+  /// Aggregates system-wide analytics for admin dashboards.
   Future<AdminStats> getAdminStats() async {
     final now = DateTime.now();
     final sevenDaysAgo = now.subtract(const Duration(days: 7));
@@ -181,6 +187,8 @@ class AnalyticsService {
       lastUpdatedAt: now,
     );
   }
+
+  // ───────────────── USAGE LOGGING ─────────────────
 
   Future<void> logResourceViewed({
     required String uid,
@@ -252,6 +260,19 @@ class AnalyticsService {
     );
   }
 
+  Future<void> logResourceUploaded({
+    required String uid,
+    required String resourceId,
+  }) async {
+    await _logUsage(
+      uid: uid,
+      action: 'resource_upload',
+      metadata: {'resourceId': resourceId},
+    );
+  }
+
+  /// Internal helper for usage logging.
+  /// Failures are ignored to avoid blocking user actions.
   Future<void> _logUsage({
     required String uid,
     required String action,
@@ -265,7 +286,7 @@ class AnalyticsService {
         'createdAt': FieldValue.serverTimestamp(),
       });
     } catch (_) {
-      // Analytics must never block user flows.
+      // Analytics must never block user flows
     }
   }
 }

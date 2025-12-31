@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
+import '../../../core/localization/app_localizations.dart';
 import '../models/event.dart';
 import '../services/event_firestore_service.dart';
+import 'event_create_screen.dart';
 import 'event_details_screen.dart';
+import 'event_calendar_screen.dart';
 
-/// Phase 4 – Events List UI (Shahd)
-/// Uses EventFirestoreService.watchUpcomingEvents to show live events
-/// with basic search, filtering, and sorting.
 class EventListScreen extends StatefulWidget {
   const EventListScreen({super.key});
 
@@ -14,82 +15,136 @@ class EventListScreen extends StatefulWidget {
   State<EventListScreen> createState() => _EventListScreenState();
 }
 
-enum _SortOption {
-  soonest,
-  latest,
-}
+enum _SortOption { soonest, latest }
 
 class _EventListScreenState extends State<EventListScreen> {
   final _eventService = EventFirestoreService();
-
   late final Stream<List<Event>> _eventsStream;
 
   String _searchQuery = '';
-  String? _selectedTag; // null = all tags
+  String? _selectedTag;
   _SortOption _sortOption = _SortOption.soonest;
 
   @override
   void initState() {
     super.initState();
-    // Single shared stream for the screen
     _eventsStream = _eventService.watchUpcomingEvents();
+  }
+
+  void _openCreate() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final t = AppLocalizations.of(context);
+
+    if (uid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.t('auth.loginRequired'))),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EventCreateScreen(uid: uid),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Campus Events'),
+        backgroundColor: colors.primary,
+        foregroundColor: colors.onPrimary,
+        centerTitle: true,
+        title: Text(t.t('events.title')),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.calendar_month),
+            tooltip: t.t('events.calendar'),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const EventCalendarScreen(),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: t.t('events.create'),
+            onPressed: _openCreate,
+          ),
+        ],
       ),
       body: Column(
         children: [
-          _buildSearchAndSortBar(),
-          const SizedBox(height: 4),
-          // Tags row depends on the incoming events → built inside StreamBuilder
+          _buildSearchBar(theme, t),
           Expanded(
             child: StreamBuilder<List<Event>>(
               stream: _eventsStream,
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                if (snapshot.connectionState ==
+                    ConnectionState.waiting) {
+                  return const Center(
+                      child: CircularProgressIndicator());
                 }
 
                 if (snapshot.hasError) {
-                  return Center(
-                    child: Text('Error loading events: ${snapshot.error}'),
-                  );
+                  return Center(child: Text(t.t('common.error')));
                 }
 
                 final allEvents = snapshot.data ?? [];
 
                 if (allEvents.isEmpty) {
-                  return const Center(
-                    child: Text('No upcoming events yet.'),
+                  return Center(
+                    child: Text(
+                      t.t('events.empty'),
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(color: colors.outline),
+                    ),
                   );
                 }
 
-                final uniqueTags = _extractTags(allEvents);
-                final filtered = _applyFilters(allEvents);
+                final tags = _extractTags(allEvents);
+                final events = _applyFilters(allEvents);
+
+                if (events.isEmpty) {
+                  return Center(
+                    child: Text(
+                      t.t('events.noMatch'),
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(color: colors.outline),
+                    ),
+                  );
+                }
 
                 return Column(
                   children: [
-                    if (uniqueTags.isNotEmpty)
-                      _buildTagFilterRow(uniqueTags)
-                    else
-                      const SizedBox(height: 8),
+                    if (tags.isNotEmpty)
+                      _buildTagRow(tags, theme, colors, t),
                     Expanded(
                       child: ListView.builder(
-                        itemCount: filtered.length,
+                        padding:
+                        const EdgeInsets.fromLTRB(12, 8, 12, 16),
+                        itemCount: events.length,
                         itemBuilder: (context, index) {
-                          final event = filtered[index];
+                          final event = events[index];
                           return _EventCard(
                             event: event,
                             onTap: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) =>
-                                      EventDetailsScreen(eventId: event.id),
+                                  builder: (_) => EventDetailsScreen(
+                                    eventId: event.id,
+                                  ),
                                 ),
                               );
                             },
@@ -107,54 +162,65 @@ class _EventListScreenState extends State<EventListScreen> {
     );
   }
 
-  // ---------- UI helpers ----------
+  /* ───────── SEARCH BAR ───────── */
 
-  Widget _buildSearchAndSortBar() {
+  Widget _buildSearchBar(
+      ThemeData theme, AppLocalizations t) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
       child: Row(
         children: [
-          // Search
           Expanded(
             child: TextField(
-              decoration: const InputDecoration(
-                hintText: 'Search events...',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-                isDense: true,
+              decoration: InputDecoration(
+                hintText: t.t('events.search'),
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: theme.cardColor,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
               ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value.trim();
-                });
-              },
+              onChanged: (v) =>
+                  setState(() => _searchQuery = v.trim()),
             ),
           ),
           const SizedBox(width: 8),
-          // Sort dropdown
           PopupMenuButton<_SortOption>(
             initialValue: _sortOption,
-            onSelected: (value) {
-              setState(() {
-                _sortOption = value;
-              });
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
+            onSelected: (v) => setState(() => _sortOption = v),
+            itemBuilder: (_) => [
+              PopupMenuItem(
                 value: _SortOption.soonest,
-                child: Text('Soonest first'),
+                child: Text(t.t('events.sortSoonest')),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: _SortOption.latest,
-                child: Text('Latest first'),
+                child: Text(t.t('events.sortLatest')),
               ),
             ],
-            child: Row(
-              children: const [
-                Icon(Icons.sort),
-                SizedBox(width: 4),
-                Text('Sort'),
-              ],
+            child: Container(
+              height: 46,
+              padding:
+              const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: theme.cardColor,
+                borderRadius: BorderRadius.circular(14),
+                border:
+                Border.all(color: theme.dividerColor),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.sort, size: 18),
+                  const SizedBox(width: 6),
+                  Text(
+                    t.t('events.sort'),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -162,44 +228,43 @@ class _EventListScreenState extends State<EventListScreen> {
     );
   }
 
-  Widget _buildTagFilterRow(List<String> tags) {
-    final theme = Theme.of(context);
+  /* ───────── TAG FILTER ───────── */
 
+  Widget _buildTagRow(
+      List<String> tags,
+      ThemeData theme,
+      ColorScheme colors,
+      AppLocalizations t,
+      ) {
     return SizedBox(
-      height: 48,
+      height: 46,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         scrollDirection: Axis.horizontal,
-        itemCount: tags.length + 1, // + "All" chip
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, __) =>
+        const SizedBox(width: 8),
+        itemCount: tags.length + 1,
         itemBuilder: (context, index) {
-          if (index == 0) {
-            final isSelected = _selectedTag == null;
-            return ChoiceChip(
-              label: const Text('All'),
-              selected: isSelected,
-              onSelected: (_) {
-                setState(() {
-                  _selectedTag = null;
-                });
-              },
-            );
-          }
-
-          final tag = tags[index - 1];
-          final isSelected = _selectedTag == tag;
+          final label =
+          index == 0 ? t.t('common.all') : tags[index - 1];
+          final selected =
+          index == 0 ? _selectedTag == null : _selectedTag == label;
 
           return ChoiceChip(
-            label: Text(tag),
-            selected: isSelected,
-            labelStyle: isSelected
-                ? theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onPrimary,
-                  )
-                : null,
+            label: Text(label),
+            selected: selected,
+            selectedColor:
+            colors.primary.withOpacity(0.12),
+            labelStyle: TextStyle(
+              color: selected
+                  ? colors.primary
+                  : colors.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
             onSelected: (_) {
               setState(() {
-                _selectedTag = isSelected ? null : tag;
+                _selectedTag =
+                label == t.t('common.all') ? null : label;
               });
             },
           );
@@ -208,202 +273,144 @@ class _EventListScreenState extends State<EventListScreen> {
     );
   }
 
-  // ---------- filtering / sorting ----------
+  /* ───────── FILTER LOGIC ───────── */
 
   List<String> _extractTags(List<Event> events) {
     final set = <String>{};
     for (final e in events) {
-      for (final tag in e.tags) {
-        if (tag.trim().isNotEmpty) {
-          set.add(tag.trim());
-        }
+      for (final t in e.tags) {
+        if (t.trim().isNotEmpty) set.add(t.trim());
       }
     }
-    final list = set.toList()..sort();
-    return list;
+    return set.toList()..sort();
   }
 
   List<Event> _applyFilters(List<Event> events) {
-    var result = List<Event>.from(events);
+    final now = DateTime.now();
 
-    // Search by title or location
+    var result = events.where((e) {
+      final cutoff = e.endTime.add(const Duration(days: 1));
+      return cutoff.isAfter(now);
+    }).toList();
+
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
       result = result.where((e) {
-        final title = e.title.toLowerCase();
-        final location = e.location.toLowerCase();
-        return title.contains(q) || location.contains(q);
+        return e.title.toLowerCase().contains(q) ||
+            e.location.toLowerCase().contains(q);
       }).toList();
     }
 
-    // Tag filter
     if (_selectedTag != null) {
-      result = result
-          .where((e) => e.tags.map((t) => t.toLowerCase()).contains(
-                _selectedTag!.toLowerCase(),
-              ))
-          .toList();
+      result = result.where((e) {
+        return e.tags
+            .map((t) => t.toLowerCase())
+            .contains(_selectedTag!.toLowerCase());
+      }).toList();
     }
 
-    // Sort
     result.sort((a, b) {
-      final aTime = a.startTime;
-      final bTime = b.startTime;
-
       if (_sortOption == _SortOption.soonest) {
-        return aTime.compareTo(bTime);
-      } else {
-        return bTime.compareTo(aTime);
+        return a.startTime.compareTo(b.startTime);
       }
+      return b.startTime.compareTo(a.startTime);
     });
 
     return result;
   }
 }
 
-/// Single event card in the list.
+/* ───────── EVENT CARD ───────── */
+
 class _EventCard extends StatelessWidget {
   final Event event;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
 
   const _EventCard({
     required this.event,
-    this.onTap,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final date = event.date.toLocal();
-    final start = event.startTime.toLocal();
-    final end = event.endTime.toLocal();
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
 
-    final dateLabel = '${date.year}-${_two(date.month)}-${_two(date.day)}';
-    final timeLabel =
-        '${_two(start.hour)}:${_two(start.minute)} - ${_two(end.hour)}:${_two(end.minute)}';
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildLeadingImageOrIcon(),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildMainInfo(context, dateLabel, timeLabel),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLeadingImageOrIcon() {
-    if (event.imageUrl != null && event.imageUrl!.isNotEmpty) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.network(
-          event.imageUrl!,
-          width: 72,
-          height: 72,
-          fit: BoxFit.cover,
-        ),
-      );
-    }
+    final date = event.startTime.toLocal();
+    final dateLabel =
+        '${date.day}/${date.month}/${date.year} • '
+        '${date.hour.toString().padLeft(2, '0')}:'
+        '${date.minute.toString().padLeft(2, '0')}';
 
     return Container(
-      width: 72,
-      height: 72,
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(width: 0.4),
-      ),
-      alignment: Alignment.center,
-      child: const Icon(Icons.event),
-    );
-  }
-
-  Widget _buildMainInfo(
-    BuildContext context,
-    String dateLabel,
-    String timeLabel,
-  ) {
-    final theme = Theme.of(context);
-    final capacity = event.capacity;
-    final attending = event.attendeesCount;
-    final hasCapacity = capacity > 0;
-    final progress =
-        hasCapacity ? (attending / capacity).clamp(0.0, 1.0) : 0.0;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          event.title,
-          style: theme.textTheme.titleMedium,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          event.location,
-          style: theme.textTheme.bodySmall,
-        ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            const Icon(Icons.schedule, size: 16),
-            const SizedBox(width: 4),
-            Text(
-              '$dateLabel • $timeLabel',
-              style: theme.textTheme.bodySmall,
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        if (event.tags.isNotEmpty)
-          Wrap(
-            spacing: 4,
-            runSpacing: -4,
-            children: event.tags
-                .take(3)
-                .map(
-                  (t) => Chip(
-                    label: Text(
-                      t,
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    visualDensity: VisualDensity.compact,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
-                  ),
-                )
-                .toList(),
-          ),
-        if (hasCapacity) ...[
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Expanded(
-                child: LinearProgressIndicator(value: progress),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '$attending / $capacity',
-                style: theme.textTheme.bodySmall,
-              ),
-            ],
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
-      ],
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                event.title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Icon(Icons.place_outlined,
+                      size: 16, color: colors.outline),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      event.location,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                      theme.textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(Icons.schedule,
+                      size: 16, color: colors.outline),
+                  const SizedBox(width: 6),
+                  Text(
+                    dateLabel,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+              ),
+              if (event.capacity > 0) ...[
+                const SizedBox(height: 6),
+                Text(
+                  '${event.attendeesCount}/${event.capacity}',
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
-
-  String _two(int n) => n.toString().padLeft(2, '0');
 }

@@ -18,6 +18,24 @@ class NotificationsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
+        actions: [
+          // 🔴 DEBUG BUTTON — REMOVE LATER
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            onPressed: () async {
+              await FirebaseFirestore.instance
+                  .collection('notifications')
+                  .add({
+                'uid': uid,
+                'title': 'Debug notification',
+                'body': 'If you see this, notifications work ✅',
+                'type': 'debug',
+                'isRead': false,
+                'createdAt': FieldValue.serverTimestamp(),
+              });
+            },
+          ),
+        ],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance

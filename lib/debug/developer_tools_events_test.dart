@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../core/localization/app_localizations.dart';
 import '../features/events/models/event.dart';
 import '../features/events/services/event_firestore_service.dart';
 import '../core/services/auth_service.dart';
 
-// Developer-only screen to test Events backend
-// NOT part of real UI
+/// Developer-only screen for testing the Events backend.
+/// Not part of the production UI.
 class DeveloperToolsEventsTest extends StatefulWidget {
   const DeveloperToolsEventsTest({super.key});
 
@@ -20,14 +21,14 @@ class _DeveloperToolsEventsTestState extends State<DeveloperToolsEventsTest> {
 
   Stream<List<Event>>? _eventsStream;
 
-  // quick access to auth uid
+  /// Returns the current authenticated user's uid.
   String get _uid {
     final user = _authService.currentUser;
     if (user == null) throw Exception('Not authenticated');
     return user.uid;
   }
 
-  // create dummy event (admin simulation)
+  /// Creates a dummy event to simulate admin-created events.
   Future<void> _createTestEvent() async {
     final now = DateTime.now();
 
@@ -52,18 +53,22 @@ class _DeveloperToolsEventsTestState extends State<DeveloperToolsEventsTest> {
     final id = await _eventService.createEvent(event);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Event created: $id')),
+      SnackBar(
+        content: Text(
+          '${AppLocalizations.of(context).t('events.created')}: $id',
+        ),
+      ),
     );
   }
 
-  // listen to upcoming events
+  /// Starts listening to upcoming events.
   void _listenToEvents() {
     setState(() {
       _eventsStream = _eventService.watchUpcomingEvents();
     });
   }
 
-  // rsvp test
+  /// Toggles RSVP state for the current user.
   Future<void> _toggleRsvp(Event event) async {
     final hasRsvped =
     await _eventService.hasUserRsvped(eventId: event.id, uid: _uid);
@@ -77,42 +82,47 @@ class _DeveloperToolsEventsTestState extends State<DeveloperToolsEventsTest> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final t = AppLocalizations.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Events Debug Tools')),
+      appBar: AppBar(
+        title: Text(t.t('events.debugTools')),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // actions
+            // Action buttons
             Row(
               children: [
                 ElevatedButton(
                   onPressed: _createTestEvent,
-                  child: const Text('Create Test Event'),
+                  child: Text(t.t('events.createTest')),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: _listenToEvents,
-                  child: const Text('Listen Events'),
+                  child: Text(t.t('events.listen')),
                 ),
               ],
             ),
 
             const Divider(height: 32),
 
-            // live events stream
+            // Live events stream
             if (_eventsStream != null)
               Expanded(
                 child: StreamBuilder<List<Event>>(
                   stream: _eventsStream,
                   builder: (context, snap) {
                     if (!snap.hasData) {
-                      return const Text('Waiting for events...');
+                      return Text(t.t('common.loading'));
                     }
 
                     final events = snap.data!;
                     if (events.isEmpty) {
-                      return const Text('No events found');
+                      return Text(t.t('events.noEvents'));
                     }
 
                     return ListView.builder(
@@ -123,11 +133,13 @@ class _DeveloperToolsEventsTestState extends State<DeveloperToolsEventsTest> {
                         return ListTile(
                           title: Text(e.title),
                           subtitle: Text(
-                            'Count: ${e.attendeesCount} / ${e.capacity}',
+                            '${t.t('events.attendees')}: '
+                                '${e.attendeesCount} / ${e.capacity}',
+                            style: theme.textTheme.bodySmall,
                           ),
                           trailing: ElevatedButton(
                             onPressed: () => _toggleRsvp(e),
-                            child: const Text('Toggle RSVP'),
+                            child: Text(t.t('events.toggleRsvp')),
                           ),
                         );
                       },

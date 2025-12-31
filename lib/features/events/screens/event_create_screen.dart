@@ -1,14 +1,22 @@
-// Phase 4 — Events Module
-// UI screen for creating events
-// Backend exists and is tested separately
-// This screen is currently wired as UI-only by choice
-
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../../../core/localization/app_localizations.dart';
+import '../models/event.dart';
+import '../services/event_firestore_service.dart';
 import 'event_details_screen.dart';
 
 class EventCreateScreen extends StatefulWidget {
-  const EventCreateScreen({super.key});
+  final String uid;
+
+  const EventCreateScreen({
+    super.key,
+    required this.uid,
+  });
 
   @override
   State<EventCreateScreen> createState() => _EventCreateScreenState();
@@ -16,21 +24,34 @@ class EventCreateScreen extends StatefulWidget {
 
 class _EventCreateScreenState extends State<EventCreateScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _eventService = EventFirestoreService();
+  final _imagePicker = ImagePicker();
 
   final _title = TextEditingController();
   final _location = TextEditingController();
   final _description = TextEditingController();
   final _capacity = TextEditingController();
+  final _customTagController = TextEditingController();
 
-  DateTime? _selectedDate;
-  TimeOfDay? _startTime;
-  TimeOfDay? _endTime;
+  DateTime? _startDateTime;
+  DateTime? _endDateTime;
 
-  final List<String> _tags = ["Robotics", "Workshop", "Campus", "AI", "Career"];
-  final Set<String> _selectedTags = {};
+  File? _imageFile;
+  bool _submitting = false;
 
-  String? _bannerName; // UI only (fake upload)
-  bool _submitted = false;
+  final List<String> _systemTags = [
+    'Workshop',
+    'Career',
+    'AI',
+    'Robotics',
+    'Campus',
+    'Hackathon',
+    'Research',
+    'Social',
+  ];
+
+  final Set<String> _selectedSystemTags = {};
+  final Set<String> _customTags = {};
 
   @override
   void dispose() {
@@ -38,265 +59,330 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
     _location.dispose();
     _description.dispose();
     _capacity.dispose();
+    _customTagController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      firstDate: now,
-      lastDate: DateTime(now.year + 2),
-      initialDate: _selectedDate ?? now,
+  /* ───────────────── IMAGE ───────────────── */
+
+  Future<void> _pickImage() async {
+    final picked = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
     );
     if (picked != null && mounted) {
-      setState(() => _selectedDate = picked);
+      setState(() => _imageFile = File(picked.path));
     }
   }
 
-  Future<void> _pickStartTime() async {
-    final picked = await showTimePicker(
+  Future<String?> _uploadImage(String eventId) async {
+    if (_imageFile == null) return null;
+
+    final ref = FirebaseStorage.instance
+        .ref()
+        .child('event_images')
+        .child('$eventId.jpg');
+
+    await ref.putFile(_imageFile!);
+    return ref.getDownloadURL();
+  }
+
+  /* ───────────────── DATE & TIME ───────────────── */
+
+  Future<void> _pickStartDateTime() async {
+    final date = await showDatePicker(
       context: context,
-      initialTime: _startTime ?? TimeOfDay.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(DateTime.now().year + 2),
+      initialDate: DateTime.now(),
     );
-    if (picked != null && mounted) {
-      setState(() => _startTime = picked);
-    }
-  }
+    if (date == null) return;
 
-  Future<void> _pickEndTime() async {
-    final picked = await showTimePicker(
+    final time = await showTimePicker(
       context: context,
-      initialTime: _endTime ?? TimeOfDay.now(),
+      initialTime: TimeOfDay.now(),
     );
-    if (picked != null && mounted) {
-      setState(() => _endTime = picked);
-    }
-  }
+    if (time == null) return;
 
-  void _fakeUploadBanner() {
-    if (!mounted) return;
-    setState(() => _bannerName = "event_banner.png");
-  }
-
-  String _formatDate(DateTime? d) {
-    if (d == null) return "Select date";
-    return "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
-  }
-
-  String _formatTime(TimeOfDay? t) {
-    if (t == null) return "Select time";
-    final h = t.hour.toString().padLeft(2, '0');
-    final m = t.minute.toString().padLeft(2, '0');
-    return "$h:$m";
-  }
-
-  bool _isEndTimeValid() {
-    if (_startTime == null || _endTime == null) return true;
-
-    final s = _startTime!.hour * 60 + _startTime!.minute;
-    final e = _endTime!.hour * 60 + _endTime!.minute;
-
-    return e > s;
-  }
-
-  void _createEventUIOnly() {
-    if (_submitted) return;
-
-    final valid = _formKey.currentState?.validate() ?? false;
-    if (!valid) return;
-
-    if (_selectedDate == null || _startTime == null || _endTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please choose date, start time, and end time."),
-        ),
+    setState(() {
+      _startDateTime = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
       );
+    });
+  }
+
+  Future<void> _pickEndDateTime() async {
+    if (_startDateTime == null) return;
+
+    final date = await showDatePicker(
+      context: context,
+      firstDate: _startDateTime!,
+      lastDate: DateTime(DateTime.now().year + 2),
+      initialDate: _startDateTime!,
+    );
+    if (date == null) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_startDateTime!),
+    );
+    if (time == null) return;
+
+    setState(() {
+      _endDateTime = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
+    });
+  }
+
+  bool _timeValid() =>
+      _startDateTime != null &&
+          _endDateTime != null &&
+          _endDateTime!.isAfter(_startDateTime!);
+
+  /* ───────────────── TAGS ───────────────── */
+
+  void _addCustomTag() {
+    final text = _customTagController.text.trim().toLowerCase();
+    if (text.isEmpty || text.length > 20 || _customTags.length >= 3) return;
+
+    setState(() {
+      _customTags.add(text);
+      _customTagController.clear();
+    });
+  }
+
+  /* ───────────────── CREATE EVENT ───────────────── */
+
+  Future<void> _createEvent() async {
+    final t = AppLocalizations.of(context);
+
+    if (_submitting) return;
+    if (!_formKey.currentState!.validate()) return;
+
+    if (!_timeValid()) {
+      _toast(t.t('events.invalidTime'));
       return;
     }
 
-    if (!_isEndTimeValid()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("End time must be after start time."),
+    setState(() => _submitting = true);
+
+    try {
+      final now = DateTime.now();
+
+      final event = Event(
+        id: '',
+        title: _title.text.trim(),
+        description: _description.text.trim(),
+        location: _location.text.trim(),
+        date: DateTime(
+          _startDateTime!.year,
+          _startDateTime!.month,
+          _startDateTime!.day,
+        ),
+        startTime: _startDateTime!,
+        endTime: _endDateTime!,
+        createdBy: widget.uid,
+        isOnline: false,
+        imageUrl: null,
+        tags: [..._selectedSystemTags, ..._customTags],
+        capacity: int.tryParse(_capacity.text.trim()) ?? 0,
+        attendeesCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      final eventId = await _eventService.createEvent(event);
+
+      final imageUrl = await _uploadImage(eventId);
+      if (imageUrl != null) {
+        await _eventService.updateEventImage(
+          eventId: eventId,
+          imageUrl: imageUrl,
+        );
+      }
+
+      // 🔔 In-app notification (Firestore)
+      await FirebaseFirestore.instance.collection('notifications').add({
+        'uid': widget.uid,
+        'titleKey': 'events.eventCreated',
+        'title': t.t('events.eventCreated'),
+        'body': event.title,
+        'type': 'event_created',
+        'referenceId': eventId,
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      if (!mounted) return;
+      setState(() => _submitting = false);
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => EventDetailsScreen(eventId: eventId),
         ),
       );
-      return;
+    } catch (_) {
+      _toast(t.t('common.error'));
+      if (mounted) setState(() => _submitting = false);
     }
-
-    setState(() => _submitted = true);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Create Event (UI demo). Backend wiring comes next."),
-      ),
-    );
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const EventDetailsScreen(eventId: "ui-only-temp-id"),
-      ),
-    );
   }
+
+  /* ───────────────── UI ───────────────── */
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text("Create Event"),
+        backgroundColor: colors.primary,
+        foregroundColor: colors.onPrimary,
+        title: Text(t.t('events.create')),
       ),
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              // Banner (UI only)
-              Container(
-                height: 160,
-                decoration: BoxDecoration(
-                  color: Colors.black12,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Center(
-                  child: Text(
-                    _bannerName == null
-                        ? "No banner selected"
-                        : "Selected: $_bannerName",
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _card(
+              Column(
+                children: [
+                  SizedBox(
+                    height: 160,
+                    child: _imageFile == null
+                        ? const Center(child: Icon(Icons.image, size: 48))
+                        : ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.file(
+                        _imageFile!,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _pickImage,
+                    icon: const Icon(Icons.add_a_photo),
+                    label: Text(t.t('events.addPhoto')),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            _card(
+              Column(
+                children: [
+                  _field(_title, t.t('events.title')),
+                  const SizedBox(height: 12),
+                  _field(_location, t.t('events.location')),
+                  const SizedBox(height: 12),
+                  _field(_description, t.t('events.description'), maxLines: 4),
+                  const SizedBox(height: 12),
+                  _field(
+                    _capacity,
+                    t.t('events.capacity'),
+                    keyboardType: TextInputType.number,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            _card(
+              Column(
+                children: [
+                  _picker(t.t('events.startsAt'), _startDateTime, _pickStartDateTime),
+                  const Divider(),
+                  _picker(t.t('events.endsAt'), _endDateTime, _pickEndDateTime),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              height: 48,
+              child: FilledButton(
+                onPressed: _submitting ? null : _createEvent,
+                child: _submitting
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text(
+                  t.t('events.create'),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
-              const SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: _fakeUploadBanner,
-                icon: const Icon(Icons.upload),
-                label: const Text("Upload banner (UI only)"),
-              ),
-              const SizedBox(height: 16),
-
-              TextFormField(
-                controller: _title,
-                decoration: const InputDecoration(
-                  labelText: "Event Title",
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) =>
-                (v == null || v.trim().isEmpty) ? "Title is required" : null,
-              ),
-              const SizedBox(height: 12),
-
-              TextFormField(
-                controller: _location,
-                decoration: const InputDecoration(
-                  labelText: "Location",
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) =>
-                (v == null || v.trim().isEmpty) ? "Location is required" : null,
-              ),
-              const SizedBox(height: 12),
-
-              TextFormField(
-                controller: _description,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: "Description",
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) => (v == null || v.trim().length < 10)
-                    ? "Description must be at least 10 characters"
-                    : null,
-              ),
-              const SizedBox(height: 12),
-
-              TextFormField(
-                controller: _capacity,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: "Capacity",
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) {
-                    return "Capacity is required";
-                  }
-                  final n = int.tryParse(v.trim());
-                  if (n == null || n <= 0) {
-                    return "Enter a valid number";
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Date & Time pickers
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.calendar_month),
-                title: Text(_formatDate(_selectedDate)),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: _pickDate,
-              ),
-              const Divider(height: 1),
-
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.schedule),
-                title: Text("Start: ${_formatTime(_startTime)}"),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: _pickStartTime,
-              ),
-              const Divider(height: 1),
-
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.schedule),
-                title: Text("End: ${_formatTime(_endTime)}"),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: _pickEndTime,
-              ),
-              const SizedBox(height: 16),
-
-              // Tags
-              Text(
-                "Tags",
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _tags.map((t) {
-                  final selected = _selectedTags.contains(t);
-                  return FilterChip(
-                    label: Text(t),
-                    selected: selected,
-                    onSelected: (v) {
-                      if (!mounted) return;
-                      setState(() {
-                        if (v) {
-                          _selectedTags.add(t);
-                        } else {
-                          _selectedTags.remove(t);
-                        }
-                      });
-                    },
-                  );
-                }).toList(),
-              ),
-
-              const SizedBox(height: 24),
-
-              FilledButton.icon(
-                onPressed: _submitted ? null : _createEventUIOnly,
-                icon: const Icon(Icons.add),
-                label: const Text("Create Event (UI only)"),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  /* ───────────────── HELPERS ───────────────── */
+
+  void _toast(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Widget _field(
+      TextEditingController c,
+      String label, {
+        int maxLines = 1,
+        TextInputType? keyboardType,
+      }) {
+    return TextFormField(
+      controller: c,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  Widget _picker(String label, DateTime? value, VoidCallback onTap) {
+    return ListTile(
+      title: Text(
+        value == null
+            ? label
+            : '$label — ${value.day}/${value.month}/${value.year} '
+            '${value.hour.toString().padLeft(2, '0')}:'
+            '${value.minute.toString().padLeft(2, '0')}',
+      ),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: onTap,
+    );
+  }
+
+  Widget _card(Widget child) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 }

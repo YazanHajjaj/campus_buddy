@@ -1,40 +1,56 @@
 import 'package:flutter/material.dart';
+
+import 'package:campus_buddy/core/localization/app_localizations.dart';
 import 'report_export_screen.dart';
 
+/// Admin dashboard overview screen.
+/// Displays high-level system stats and export access.
+/// Charts are planned for a future phase.
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final t = AppLocalizations.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Admin Dashboard'),
+        centerTitle: true,
+        title: Text(
+          t.t('admin.dashboard'),
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
         actions: [
           IconButton(
-            tooltip: 'Export Report',
+            tooltip: t.t('admin.exportReport'),
             icon: const Icon(Icons.download),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const ReportExportScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const ReportExportScreen(),
+                ),
               );
             },
           ),
         ],
       ),
 
-      // ✅ Fixed bottom button (won’t scroll away)
+      // Fixed export button for quick access
       bottomNavigationBar: SafeArea(
         minimum: const EdgeInsets.all(16),
         child: SizedBox(
           height: 52,
           child: FilledButton.icon(
             icon: const Icon(Icons.download),
-            label: const Text("Export Report"),
+            label: Text(t.t('admin.exportReport')),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const ReportExportScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const ReportExportScreen(),
+                ),
               );
             },
           ),
@@ -42,15 +58,15 @@ class AdminDashboardScreen extends StatelessWidget {
       ),
 
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96), // ✅ space for bottom button
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
         children: [
           Text(
-            "System Overview",
-            style: Theme.of(context).textTheme.headlineSmall,
+            t.t('admin.systemOverview'),
+            style: theme.textTheme.headlineSmall,
           ),
           const SizedBox(height: 12),
 
-          // ✅ Responsive grid
+          // Responsive stat grid
           LayoutBuilder(
             builder: (context, constraints) {
               final width = constraints.maxWidth;
@@ -63,11 +79,23 @@ class AdminDashboardScreen extends StatelessWidget {
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 12,
                 childAspectRatio: 1.35,
-                children: const [
-                  _StatCard(title: "Active Students", value: "128"),
-                  _StatCard(title: "Mentors", value: "14"),
-                  _StatCard(title: "Events This Month", value: "6"),
-                  _StatCard(title: "Top Resource Downloads", value: "42"),
+                children: [
+                  _StatCard(
+                    title: t.t('admin.activeStudents'),
+                    value: '128',
+                  ),
+                  _StatCard(
+                    title: t.t('admin.mentors'),
+                    value: '14',
+                  ),
+                  _StatCard(
+                    title: t.t('admin.eventsThisMonth'),
+                    value: '6',
+                  ),
+                  _StatCard(
+                    title: t.t('admin.topResourceDownloads'),
+                    value: '42',
+                  ),
                 ],
               );
             },
@@ -75,28 +103,39 @@ class AdminDashboardScreen extends StatelessWidget {
 
           const SizedBox(height: 18),
           Text(
-            "Charts (placeholder)",
-            style: Theme.of(context).textTheme.titleMedium,
+            t.t('admin.chartsPlaceholder'),
+            style: theme.textTheme.titleMedium,
           ),
           const SizedBox(height: 10),
 
-          const _ChartPlaceholder(title: "Activity Trend (Last 7 days)"),
+          _ChartPlaceholder(
+            title: t.t('admin.chartActivityTrend'),
+          ),
           const SizedBox(height: 12),
-          const _ChartPlaceholder(title: "User Categories (Students vs Mentors)"),
+          _ChartPlaceholder(
+            title: t.t('admin.chartUserCategories'),
+          ),
         ],
       ),
     );
   }
 }
 
+/* ───────────────── STAT CARD ───────────────── */
+
 class _StatCard extends StatelessWidget {
   final String title;
   final String value;
 
-  const _StatCard({required this.title, required this.value});
+  const _StatCard({
+    required this.title,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -108,17 +147,15 @@ class _StatCard extends StatelessWidget {
               title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelLarge,
+              style: theme.textTheme.labelLarge,
             ),
             const SizedBox(height: 10),
-
-            // ✅ Prevent overflow for large values
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
               child: Text(
                 value,
-                style: Theme.of(context).textTheme.headlineMedium,
+                style: theme.textTheme.headlineMedium,
               ),
             ),
           ],
@@ -128,6 +165,8 @@ class _StatCard extends StatelessWidget {
   }
 }
 
+/* ─────────────── CHART PLACEHOLDER ─────────────── */
+
 class _ChartPlaceholder extends StatelessWidget {
   final String title;
 
@@ -135,6 +174,8 @@ class _ChartPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Card(
       child: Container(
         height: 170,
@@ -143,11 +184,11 @@ class _ChartPlaceholder extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: Theme.of(context).textTheme.titleSmall),
+            Text(title, style: theme.textTheme.titleSmall),
             const SizedBox(height: 10),
             const Expanded(
               child: Center(
-                child: Text("Chart goes here (dummy)"),
+                child: Text('Chart placeholder'),
               ),
             ),
           ],

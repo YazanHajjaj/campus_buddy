@@ -55,7 +55,8 @@ class Event {
     required this.updatedAt,
   });
 
-  // firestore -> model
+  // ───────────────── FIRESTORE → MODEL ─────────────────
+
   factory Event.fromMap(String id, Map<String, dynamic> data) {
     DateTime _dt(dynamic v) {
       if (v is Timestamp) return v.toDate();
@@ -83,7 +84,8 @@ class Event {
     );
   }
 
-  // model -> firestore
+  // ───────────────── MODEL → FIRESTORE ─────────────────
+
   Map<String, dynamic> toMap() {
     return {
       'title': title,
@@ -101,5 +103,43 @@ class Event {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
+  }
+
+  // ───────────────── COPY WITH (IMPORTANT) ─────────────────
+
+  Event copyWith({
+    String? id,
+    String? title,
+    String? description,
+    String? location,
+    DateTime? date,
+    DateTime? startTime,
+    DateTime? endTime,
+    String? createdBy,
+    bool? isOnline,
+    String? imageUrl,
+    List<String>? tags,
+    int? capacity,
+    int? attendeesCount,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return Event(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      location: location ?? this.location,
+      date: date ?? this.date,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
+      createdBy: createdBy ?? this.createdBy,
+      isOnline: isOnline ?? this.isOnline,
+      imageUrl: imageUrl ?? this.imageUrl,
+      tags: tags ?? this.tags,
+      capacity: capacity ?? this.capacity,
+      attendeesCount: attendeesCount ?? this.attendeesCount,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
   }
 }

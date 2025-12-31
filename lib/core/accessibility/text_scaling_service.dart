@@ -1,16 +1,9 @@
 import 'accessibility_settings.dart';
 
-/// Defines how text scaling preferences are interpreted.
-///
-/// This is a placeholder service.
-/// Real scaling logic is implemented later.
-
+/// Maps text scale preferences to scale factors.
 class TextScalingService {
   const TextScalingService();
 
-  /// Returns a multiplier for the given text scale preference.
-  ///
-  /// Values are indicative only.
   double scaleFor(TextScalePreference preference) {
     switch (preference) {
       case TextScalePreference.small:

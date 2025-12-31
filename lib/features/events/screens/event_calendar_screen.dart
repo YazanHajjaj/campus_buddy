@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/app_localizations.dart';
 import '../models/event.dart';
 import '../services/event_firestore_service.dart';
 import 'event_details_screen.dart';
 
-/// Phase 4 – Events Calendar (Shahd)
-/// Simple month grid that highlights days with events.
-/// Uses EventFirestoreService.watchUpcomingEvents and groups by event.date.
 class EventCalendarScreen extends StatefulWidget {
   const EventCalendarScreen({super.key});
 
@@ -25,14 +23,24 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
   @override
   void initState() {
     super.initState();
-    _eventsStream = _eventService.watchUpcomingEvents(limit: 200);
+    _eventsStream = _eventService.watchUpcomingEvents(limit: 300);
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    final today = DateUtils.dateOnly(DateTime.now());
+
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Events Calendar'),
+        backgroundColor: colors.primary,
+        foregroundColor: colors.onPrimary,
+        centerTitle: true,
+        title: Text(t.t('events.calendar')),
       ),
       body: StreamBuilder<List<Event>>(
         stream: _eventsStream,
@@ -42,40 +50,45 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
           }
 
           if (snapshot.hasError) {
-            return Center(
-              child: Text('Error loading events: ${snapshot.error}'),
-            );
+            return Center(child: Text(t.t('common.error')));
           }
 
-          final allEvents = snapshot.data ?? [];
+          final now = DateTime.now();
 
-          // Filter events to the current month
-          final monthEvents = allEvents.where((e) {
-            final d = e.date;
-            return d.year == _focusedMonth.year &&
-                d.month == _focusedMonth.month;
+          final validEvents = (snapshot.data ?? []).where((e) {
+            return e.endTime
+                .add(const Duration(days: 1))
+                .isAfter(now);
+          }).toList();
+
+          final monthEvents = validEvents.where((e) {
+            return e.date.year == _focusedMonth.year &&
+                e.date.month == _focusedMonth.month;
           }).toList();
 
           final eventsByDay = _groupByDay(monthEvents);
 
-          final daysInMonth =
-              DateUtils.getDaysInMonth(_focusedMonth.year, _focusedMonth.month);
+          final daysInMonth = DateUtils.getDaysInMonth(
+            _focusedMonth.year,
+            _focusedMonth.month,
+          );
+
           final firstDayOfMonth =
-              DateTime(_focusedMonth.year, _focusedMonth.month, 1);
-          final firstWeekday = firstDayOfMonth.weekday; // 1 = Monday → 7 = Sun
+          DateTime(_focusedMonth.year, _focusedMonth.month, 1);
+          final firstWeekday = firstDayOfMonth.weekday;
 
           return Column(
             children: [
-              _buildMonthHeader(),
+              _buildMonthHeader(t),
               const SizedBox(height: 8),
-              _buildWeekdayRow(),
-              const SizedBox(height: 4),
+              _buildWeekdayRow(t),
+              const SizedBox(height: 6),
               Expanded(
                 child: GridView.builder(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 7,
                     mainAxisSpacing: 8,
                     crossAxisSpacing: 8,
@@ -83,59 +96,75 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
                   itemCount: daysInMonth + (firstWeekday - 1),
                   itemBuilder: (context, index) {
                     if (index < firstWeekday - 1) {
-                      // leading blanks
                       return const SizedBox.shrink();
                     }
 
                     final dayNumber = index - (firstWeekday - 2);
-                    final date = DateTime(_focusedMonth.year,
-                        _focusedMonth.month, dayNumber);
+                    final date = DateTime(
+                      _focusedMonth.year,
+                      _focusedMonth.month,
+                      dayNumber,
+                    );
+
                     final dateOnly = DateUtils.dateOnly(date);
                     final dayEvents = eventsByDay[dateOnly] ?? [];
                     final hasEvents = dayEvents.isNotEmpty;
 
                     final isSelected = _selectedDay != null &&
                         DateUtils.isSameDay(_selectedDay, date);
+                    final isToday =
+                    DateUtils.isSameDay(today, dateOnly);
 
                     return GestureDetector(
-                      onTap: () async {
-                        setState(() {
-                          _selectedDay = date;
-                        });
-
-                        if (dayEvents.isNotEmpty) {
-                          _showDayEventsBottomSheet(context, date, dayEvents);
-                        }
-                      },
+                      onTap: hasEvents
+                          ? () {
+                        setState(() => _selectedDay = date);
+                        _showDayEventsBottomSheet(
+                          context,
+                          date,
+                          dayEvents,
+                        );
+                      }
+                          : null,
                       child: Container(
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
+                          color: isSelected
+                              ? colors.primary.withOpacity(0.12)
+                              : theme.cardColor,
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            width: isSelected ? 2 : 0.5,
+                            color: isToday
+                                ? colors.primary
+                                : colors.outlineVariant,
+                            width: isToday ? 2 : 1,
                           ),
                         ),
-                        padding: const EdgeInsets.only(
-                          top: 6,
-                          left: 4,
-                          right: 4,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text(
-                              '$dayNumber',
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                            const SizedBox(height: 4),
-                            if (hasEvents)
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '$dayNumber',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  color: isToday
+                                      ? colors.primary
+                                      : colors.onSurface,
                                 ),
                               ),
-                          ],
+                              if (hasEvents) const SizedBox(height: 2),
+                              if (hasEvents)
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    color: colors.primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     );
@@ -149,7 +178,7 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
     );
   }
 
-  // ---------- helpers ----------
+  /* ───────── HELPERS ───────── */
 
   Map<DateTime, List<Event>> _groupByDay(List<Event> events) {
     final map = <DateTime, List<Event>>{};
@@ -161,8 +190,8 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
     return map;
   }
 
-  Widget _buildMonthHeader() {
-    final monthName = _monthName(_focusedMonth.month);
+  Widget _buildMonthHeader(AppLocalizations t) {
+    final monthName = t.t('months.${_focusedMonth.month}');
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -170,92 +199,107 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
+            icon: const Icon(Icons.chevron_left),
             onPressed: () {
               setState(() {
-                _focusedMonth =
-                    DateTime(_focusedMonth.year, _focusedMonth.month - 1, 1);
+                _focusedMonth = DateTime(
+                  _focusedMonth.year,
+                  _focusedMonth.month - 1,
+                  1,
+                );
               });
             },
-            icon: const Icon(Icons.chevron_left),
           ),
           const SizedBox(width: 8),
           Text(
             '$monthName ${_focusedMonth.year}',
-            style: Theme.of(context).textTheme.titleMedium,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(width: 8),
           IconButton(
+            icon: const Icon(Icons.chevron_right),
             onPressed: () {
               setState(() {
-                _focusedMonth =
-                    DateTime(_focusedMonth.year, _focusedMonth.month + 1, 1);
+                _focusedMonth = DateTime(
+                  _focusedMonth.year,
+                  _focusedMonth.month + 1,
+                  1,
+                );
               });
             },
-            icon: const Icon(Icons.chevron_right),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildWeekdayRow() {
-    const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  Widget _buildWeekdayRow(AppLocalizations t) {
+    final labels = [
+      t.t('weekdays.mon'),
+      t.t('weekdays.tue'),
+      t.t('weekdays.wed'),
+      t.t('weekdays.thu'),
+      t.t('weekdays.fri'),
+      t.t('weekdays.sat'),
+      t.t('weekdays.sun'),
+    ];
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: labels
             .map(
-              (label) => Expanded(
-                child: Center(
-                  child: Text(
-                    label,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+              (l) => Expanded(
+            child: Center(
+              child: Text(
+                l,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black54,
                 ),
               ),
-            )
+            ),
+          ),
+        )
             .toList(),
       ),
     );
   }
 
-  String _monthName(int month) {
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return months[month - 1];
-  }
-
   void _showDayEventsBottomSheet(
-    BuildContext context,
-    DateTime date,
-    List<Event> events,
-  ) {
-    final dateLabel =
-        '${date.year}-${_two(date.month)}-${_two(date.day)}';
+      BuildContext context,
+      DateTime date,
+      List<Event> events,
+      ) {
+    final t = AppLocalizations.of(context);
+    final dateLabel = '${date.day}/${date.month}/${date.year}';
 
     showModalBottomSheet(
       context: context,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                title: Text('Events on $dateLabel'),
+              Padding(
+                padding:
+                const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(
+                  '${t.t('events.onDate')} $dateLabel',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
-              const Divider(height: 0),
+              const Divider(),
               Flexible(
                 child: ListView.builder(
                   shrinkWrap: true,
@@ -265,9 +309,11 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
                     return ListTile(
                       title: Text(e.title),
                       subtitle: Text(e.location),
+                      trailing: const Icon(Icons.chevron_right),
                       onTap: () {
-                        Navigator.of(context).pop();
-                        Navigator.of(context).push(
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
                           MaterialPageRoute(
                             builder: (_) =>
                                 EventDetailsScreen(eventId: e.id),
@@ -284,6 +330,4 @@ class _EventCalendarScreenState extends State<EventCalendarScreen> {
       },
     );
   }
-
-  String _two(int n) => n.toString().padLeft(2, '0');
 }

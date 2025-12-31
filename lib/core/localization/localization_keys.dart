@@ -7,7 +7,6 @@
 /// - Do not remove keys once published
 ///
 /// This file intentionally contains NO logic.
-
 class L10nKeys {
   // -------- Auth --------
   static const authSignIn = 'auth.signIn';
@@ -50,9 +49,6 @@ class L10nKeys {
   // -------- Mentorship --------
   static const mentorshipTitle = 'mentorship.title';
   static const mentorshipRequest = 'mentorship.request';
-  static const mentorshipAccept = 'mentorship.accept';
-  static const mentorshipDecline = 'mentorship.decline';
-  static const mentorshipChat = 'mentorship.chat';
 
   // -------- Study Groups --------
   static const studyGroupsTitle = 'studyGroups.title';
@@ -71,7 +67,8 @@ class L10nKeys {
   static const notificationsTitle = 'notifications.title';
   static const notificationsSettings = 'notifications.settings';
   static const notificationsEnableEvents = 'notifications.enableEvents';
-  static const notificationsEnableMentorship = 'notifications.enableMentorship';
+  static const notificationsEnableMentorship =
+      'notifications.enableMentorship';
   static const notificationsEnableStudyGroups =
       'notifications.enableStudyGroups';
   static const notificationsEnableGamification =
@@ -85,7 +82,6 @@ class L10nKeys {
 
   // -------- Accessibility --------
   static const accessibilityTitle = 'accessibility.title';
-  static const accessibilityTextSize = 'accessibility.textSize';
   static const accessibilityHighContrast =
       'accessibility.highContrast';
 

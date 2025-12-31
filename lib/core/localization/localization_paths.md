@@ -17,7 +17,6 @@ lib/core/localization/
 └── translations/
 ├── en.json
 ├── tr.json
-└── ar.json
 
 ---
 

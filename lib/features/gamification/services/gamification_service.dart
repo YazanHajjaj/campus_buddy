@@ -1,35 +1,152 @@
-import '../models/xp_points.dart';
-import '../models/badge.dart';
-import '../models/achievement.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Central interface for gamification-related operations.
-/// Implementation is deferred to later phases.
-abstract class GamificationService {
-  // ---------------- XP ----------------
+class GamificationService {
+  final FirebaseFirestore _db;
 
-  /// Returns the current XP state for a user.
-  Future<XpPoints> getXp(String uid);
+  GamificationService({FirebaseFirestore? firestore})
+      : _db = firestore ?? FirebaseFirestore.instance;
 
-  /// Registers an XP-related action.
-  /// The actionKey must match a key from xp_rules.dart.
-  Future<void> registerXpAction({
+  // ───────────────── REFERENCES ─────────────────
+
+  DocumentReference<Map<String, dynamic>> _userRef(String uid) {
+    return _db.collection('users').doc(uid);
+  }
+
+  CollectionReference<Map<String, dynamic>> get _xpLogs =>
+      _db.collection('user_xp_logs');
+
+  // ───────────────── PUBLIC API ─────────────────
+
+  /// Awards XP ONCE per action (deduplicated by sourceType + sourceId)
+  Future<void> addXp({
     required String uid,
-    required String actionKey,
-  });
+    required int amount,
+    required String sourceType, // e.g. "resource_upload"
+    required String sourceId,   // e.g. resourceId / requestId
+    String? reason,
+  }) async {
+    if (amount <= 0) return;
 
-  // ---------------- Badges ----------------
+    // 1️⃣ Prevent duplicate XP grants
+    final existing = await _xpLogs
+        .where('uid', isEqualTo: uid)
+        .where('sourceType', isEqualTo: sourceType)
+        .where('sourceId', isEqualTo: sourceId)
+        .limit(1)
+        .get();
 
-  /// Returns all badges for a user (locked + unlocked).
-  Future<List<Badge>> getBadges(String uid);
+    if (existing.docs.isNotEmpty) return;
 
-  /// Re-evaluates badge unlocks for a user.
-  Future<void> evaluateBadges(String uid);
+    final userRef = _userRef(uid);
+    final xpLogRef = _xpLogs.doc();
+    final now = Timestamp.now();
 
-  // ---------------- Achievements ----------------
+    await _db.runTransaction((tx) async {
+      final userSnap = await tx.get(userRef);
+      if (!userSnap.exists) return;
 
-  /// Returns all achievements for a user.
-  Future<List<Achievement>> getAchievements(String uid);
+      final data = userSnap.data() ?? {};
 
-  /// Re-evaluates achievement progress for a user.
-  Future<void> evaluateAchievements(String uid);
+      final currentXp = _asInt(data['xp']);
+      final currentBadges =
+      List<String>.from((data['earnedBadges'] ?? const []) as List);
+
+      final newXp = currentXp + amount;
+
+      // 2️⃣ LEVEL CALCULATION
+      final oldLevel = _levelForXp(currentXp);
+      final newLevel = _levelForXp(newXp);
+      final leveledUp = oldLevel != newLevel;
+
+      // 3️⃣ BADGE UNLOCKING
+      final unlockedBadges = _computeUnlockedBadges(newXp);
+      final mergedBadges = <String>{
+        ...currentBadges,
+        ...unlockedBadges,
+      }.toList();
+
+      // 4️⃣ UPDATE USER DOC
+      tx.set(
+        userRef,
+        {
+          'xp': newXp,
+          'level': newLevel,
+          'earnedBadges': mergedBadges,
+          'updatedAt': now,
+
+          // 🔔 UI SIGNALS
+          'justLeveledUp': leveledUp,
+          'previousLevel': oldLevel,
+
+          // Debug / audit
+          'lastXpGain': amount,
+          'lastXpReason': reason ?? sourceType,
+          'lastXpAt': now,
+        },
+        SetOptions(merge: true),
+      );
+
+      // 5️⃣ XP LOG (DEDUP SOURCE)
+      tx.set(xpLogRef, {
+        'uid': uid,
+        'sourceType': sourceType,
+        'sourceId': sourceId,
+        'amount': amount,
+        'createdAt': now,
+      });
+    });
+  }
+
+  // ───────────────── STREAMS (UI SAFE) ─────────────────
+
+  Stream<int> streamXp(String uid) {
+    return _userRef(uid).snapshots().map((doc) {
+      final data = doc.data() ?? {};
+      return _asInt(data['xp']);
+    });
+  }
+
+  Stream<String> streamLevel(String uid) {
+    return _userRef(uid).snapshots().map((doc) {
+      final data = doc.data() ?? {};
+      return (data['level'] as String?) ?? 'Bronze';
+    });
+  }
+
+  Stream<List<String>> streamEarnedBadges(String uid) {
+    return _userRef(uid).snapshots().map((doc) {
+      final data = doc.data() ?? {};
+      return List<String>.from((data['earnedBadges'] ?? const []) as List);
+    });
+  }
+
+  // ───────────────── BADGE RULES ─────────────────
+
+  List<String> _computeUnlockedBadges(int xp) {
+    final out = <String>[];
+
+    if (xp >= 100) out.add('badge_bronze');
+    if (xp >= 300) out.add('badge_silver');
+    if (xp >= 600) out.add('badge_gold');
+
+    return out;
+  }
+
+  // ───────────────── LEVEL RULES ─────────────────
+
+  String _levelForXp(int xp) {
+    if (xp >= 1200) return 'Platinum';
+    if (xp >= 600) return 'Gold';
+    if (xp >= 300) return 'Silver';
+    return 'Bronze';
+  }
+
+  // ───────────────── HELPERS ─────────────────
+
+  int _asInt(dynamic v, {int fallback = 0}) {
+    if (v == null) return fallback;
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    return fallback;
+  }
 }

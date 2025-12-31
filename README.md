@@ -1,245 +1,301 @@
+⸻
 
----
+🎓 Campus Buddy
 
-# 🎓 Campus Buddy
+Campus Buddy is a cross-platform university assistant application built with Flutter + Firebase.
+It centralizes essential campus services such as profiles, resources, events, mentorship, analytics, and gamification into a single, scalable mobile app.
 
-A cross-platform university assistant app built with **Flutter + Firebase**, designed to support students, mentors, and admins with a unified set of campus-focused tools.
+The project is developed as part of the Software Engineering course at Istanbul Medipol University.
 
----
+⸻
 
-# 🚀 Current Status
+🚀 Current Status
 
-All core Firebase systems are fully implemented and tested on **iOS, Android, and macOS**:
+All core Firebase infrastructure is implemented and tested on:
+•	✅ iOS
+•	✅ Android
+•	✅ macOS
 
-### ✔ Firebase & Backend
+✔ Implemented & Stable
 
-* Firebase Core initialization
-* Firebase Authentication
+Firebase & Backend
+•	Firebase Core initialization
+•	Firebase Authentication
+•	Anonymous sign-in (development/testing)
+•	Email & password login / registration
+•	Firestore User Profiles
+•	Automatic user document creation
+•	Role support (student / mentor / admin)
+•	Timestamps and metadata tracking
+•	Firebase Storage
+•	File uploads (real device)
+•	Simulator-safe dummy uploads
+•	Analytics & Gamification foundations
+•	Notifications architecture
+•	Clean modular architecture
+•	Developer diagnostic tools
 
-    * Anonymous sign-in
-    * Email/password login & registration
-* Firestore User Profiles
-
-    * Automatic user upsert (role, email, timestamps)
-    * Clean and consistent `AppUser` model
-* Firebase Storage
-
-    * Real-device file picker
-    * iOS Simulator dummy uploads
-* Robust Diagnostic Tools
-
-    * Firebase Health Check
-    * Resource Backend Test
-    * Storage Test Screen
-* Clean, modular, scalable architecture
-* Stable debug workflow via Developer Tools Menu
-
-### ⏳ Pending / Upcoming
-
-* Cloud Functions (Phase 2)
-* Resource Library UI (Phase 3)
-* Mentorship & Events (Phase 4–6)
-* Gamification & Analytics (Phase 7–10)
-
----
-
-# 🧩 Features (Modules Overview)
-
-### 🔐 **Core Authentication & Profiles**
-
-* Anonymous login (development)
-* Email/password authentication
-* Automatic Firestore user profiles
-* Role system (student / mentor / admin)
-* User metadata tracking
-
-### 📦 **Resource Library**
-
-* Upload PDF/documents to Firebase Storage
-* Backend implementation complete
-* Upcoming:
-
-    * Resource list UI
-    * Bookmarks
-    * Scanner tools
-    * Offline mode
-
-### 🤝 **Mentorship**
-
-* Mentor matching (planned)
-* Mentor availability
-* Study groups
-* Mentorship chats
-* Feedback system
-
-### 🏆 **Gamification**
-
-* Badges
-* Leaderboards
-* XP system
-* Engagement metrics
-* Rewards
-
-### 📅 **Events**
-
-* Campus event calendar
-* RSVP system
-* Event reminders
-* Event analytics
-
-### 📊 **Analytics**
-
-* Student dashboard
-* Admin reports
-* Usage graphs
-* Export to CSV/PDF
-
-### 🧪 **Debug Tools**
-
+Debug & Testing Tools
 Accessible via:
 
-```
 Home → AppBar Menu → Developer Tools
-```
 
 Includes:
+•	Firebase Health Check
+•	Storage Upload Test
+•	Resource Backend Test
+•	App diagnostics
 
-* Firebase Health Check
-* Storage Upload Test
-* Resource Backend Test
-* App info diagnostics
+⸻
 
----
+⏳ Planned / In Progress
+•	Cloud Functions (Phase 2)
+•	Resource Library UI (Phase 3)
+•	Mentorship & Events modules (Phase 4–6)
+•	Gamification & Analytics completion (Phase 7–10)
 
-# 🛠️ Tech Stack
+⸻
 
-| Area            | Technology                    |
-| --------------- | ----------------------------- |
-| Framework       | Flutter 3.x                   |
-| Language        | Dart                          |
-| Backend         | Firebase                      |
-| Auth            | Firebase Authentication       |
-| Database        | Firestore                     |
-| File Storage    | Firebase Storage              |
-| Debug Workflows | Custom Developer Tools Screen |
-| Architecture    | Clean Modular Architecture    |
-| Platforms       | iOS, Android, macOS           |
+🧩 Features Overview
 
----
+🔐 Authentication & Profiles
+•	Anonymous login (development)
+•	Email/password authentication
+•	Firestore-backed user profiles
+•	Role system (student / mentor / admin)
+•	Live profile updates
+•	Profile image upload
 
-# 📁 Project Structure (Clean Architecture)
+📦 Resource Library
+•	Upload documents to Firebase Storage
+•	Backend complete
+•	Upcoming:
+•	Resource listing UI
+•	Bookmarks
+•	Offline support
 
-```
+🤝 Mentorship
+•	Mentor matching (planned)
+•	Study groups
+•	Mentorship chats
+•	Feedback system
+
+📅 Events
+•	Campus events
+•	Calendar view
+•	RSVP system
+•	Event notifications
+•	Attendance tracking
+
+🏆 Gamification
+•	XP system
+•	Badges
+•	Leaderboards
+•	Streaks & milestones
+•	Gamification notifications
+
+📊 Analytics
+•	Student engagement tracking
+•	Admin dashboards
+•	Exportable reports
+
+⸻
+
+🛠️ Tech Stack
+
+Area	Technology
+Framework	Flutter 3.x
+Language	Dart
+Backend	Firebase
+Auth	Firebase Authentication
+Database	Cloud Firestore
+Storage	Firebase Storage
+Architecture	Clean Modular Architecture
+Platforms	iOS, Android, macOS
+
+
+⸻
+
+📁 Project Structure
+
 lib/
-  core/
-    auth/
-    models/
-    security/
-    services/
-  debug/
-    developer_tools_screen.dart
-    firebase_health_check.dart
-    storage_test_screen.dart
-    test_resource_backend.dart
-  features/
-    analytics/
-    events/
-    gamification/
-    mentorship/
-    resources/
-    storage/
-  utils/
-  firebase_options.dart
-  main.dart
-```
+├─ core/
+│   ├─ auth/
+│   ├─ localization/
+│   ├─ models/
+│   ├─ services/
+│   └─ security/
+├─ features/
+│   ├─ analytics/
+│   ├─ events/
+│   ├─ gamification/
+│   ├─ mentorship/
+│   ├─ profile/
+│   └─ resources/
+├─ debug/
+│   ├─ developer_tools_screen.dart
+│   ├─ firebase_health_check.dart
+│   ├─ storage_test_screen.dart
+│   └─ test_resource_backend.dart
+├─ utils/
+├─ firebase_options.dart
+└─ main.dart
 
-### Folder Roles
+Folder Responsibilities
 
-| Folder      | Purpose                                         |
-| ----------- | ----------------------------------------------- |
-| `core/`     | Global logic (auth, services, models, security) |
-| `features/` | All app modules (each fully isolated)           |
-| `debug/`    | Developer-only testing tools                    |
-| `utils/`    | Helpers and utilities                           |
-| `main.dart` | App bootstrap & routing                         |
+Folder	Purpose
+core/	Global logic, services, localization, security
+features/	Independent app modules
+debug/	Developer-only diagnostic tools
+utils/	Helper utilities
+main.dart	App bootstrap & routing
 
----
 
-# 🧭 Development Workflow
+⸻
 
-### 1. Clone the repo
+🧭 How to Run the Project (Step-by-Step)
 
-```bash
+1️⃣ Prerequisites
+
+Make sure you have:
+•	Flutter SDK (3.x)
+•	Dart SDK
+•	Firebase account
+•	Android Studio / Xcode (for mobile builds)
+
+Verify Flutter:
+
+flutter doctor
+
+
+⸻
+
+2️⃣ Clone the Repository
+
 git clone https://github.com/<your-username>/campus_buddy.git
 cd campus_buddy
-```
 
-### 2. Install dependencies
 
-```bash
+⸻
+
+3️⃣ Install Dependencies
+
 flutter pub get
-```
 
-### 3. Run the app
 
-```bash
+⸻
+
+4️⃣ Firebase Setup
+
+This project uses FlutterFire.
+
+If firebase_options.dart is not present:
+
+flutterfire configure
+
+Select:
+•	Firebase project
+•	Platforms (iOS, Android, macOS)
+
+This will generate:
+
+lib/firebase_options.dart
+
+
+⸻
+
+5️⃣ Platform Configuration
+
+iOS
+
+cd ios
+pod install
+cd ..
+
+Open ios/Runner.xcworkspace in Xcode if needed.
+
+Android
+No extra steps required beyond FlutterFire configuration.
+
+⸻
+
+6️⃣ Run the App
+
 flutter run
-```
 
-### 4. Run Firebase diagnostic tools
+Or specify platform:
 
-Access via Developer Tools.
+flutter run -d ios
+flutter run -d android
+flutter run -d macos
 
----
 
-# 🧵 Git Workflow (Team Sentinel Standard)
+⸻
 
-### Branch Structure
+7️⃣ Test Firebase & Backend
 
-```
-main           — stable, reviewed, safe
-feature/*      — new feature development
-bugfix/*       — bug fixes
-refactor/*     — code improvements
-```
+Inside the app:
 
-### Rules
+Home → AppBar Menu → Developer Tools
 
-* **NEVER push directly to `main`**
-* **Every task = its own branch**
-* **Only Yazan merges into main**
+Run:
+•	Firebase Health Check
+•	Storage Test
+•	Resource Backend Test
 
-### Start working:
+⸻
 
-```bash
+🧵 Git Workflow (Team Sentinel Standard)
+
+Branching Strategy
+
+main           → stable & reviewed
+feature/*      → new features
+bugfix/*       → bug fixes
+refactor/*     → code improvements
+
+Rules
+•	❌ Never push directly to main
+•	✅ Every task = its own branch
+•	✅ Pull Requests required
+•	✅ Only the team leader merges to main
+
+Start Working
+
 git checkout main
 git pull origin main
-git checkout -b feature/task-name
-```
+git checkout -b feature/your-task-name
 
----
 
-# 👥 Team Sentinel — Contributors
+⸻
 
-This project is developed for the Software Engineering course at Istanbul Medipol University.
+👥 Team Sentinel — Contributors
 
-| Name                | Role                                                 |
-| ------------------- | ---------------------------------------------------- |
-| **Yazan Hajjaj**    | Team Leader, Backend, Firebase Integration, Security |
-| **Mahmoud Lkhleif** | Database Administrator, Backend                      |
-| **Nour Acheche**    | UI/UX Designer, Front-end                            |
-| **Shahd Soltan**    | Front-end Developer, Tester                          |
-| **Ahmed Zahra**     | Front-end Developer, Tester                          |
+Developed for Software Engineering
+Istanbul Medipol University
 
-👏 **Acknowledgment:**
-Every member contributes to multiple modules including resources, mentorship, analytics, events, and gamification.
+Name	Role
+Yazan Hajjaj	Team Leader, Backend, Firebase, Security
+Mahmoud Lkhleif	Database & Backend
+Nour Acheche	UI/UX Designer
+Shahd Soltan	Frontend Developer, Testing
+Ahmed Zahra	Frontend Developer, Testing
 
----
+Each member contributes across multiple modules including events, mentorship, analytics, resources, and gamification.
 
-# 🎉 Thank You for Visiting Campus Buddy!
+⸻
 
-For issues, suggestions, or contributions, please open a GitHub issue or contact the maintainer.
+📌 Notes for Evaluators
+•	The project follows clean architecture principles
+•	Firebase rules and structure are designed for scalability
+•	Debug tools are intentionally included for demonstration and testing
+•	Code is modular, readable, and production-ready
 
-Happy coding! 🚀
+⸻
 
----
+🎉 Thank You
+
+Thank you for reviewing Campus Buddy.
+For questions or issues, please open a GitHub issue or contact the project maintainer.
+
+Happy coding 🚀
