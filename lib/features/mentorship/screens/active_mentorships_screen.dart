@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:campus_buddy/core/localization/app_localizations.dart';
+import 'package:campus_buddy/core/utils/firebase_error_debug.dart';
 
 import '../models/mentorship_request.dart';
 import '../models/mentor_profile.dart';
@@ -39,10 +40,10 @@ class ActiveMentorshipsScreen extends StatelessWidget {
     );
   }
 
-  Future<MentorProfile?> _loadMentor(String mentorId) async {
+  Future<MentorProfile?> _loadMentor(String mentorProfileId) async {
     final snap = await FirebaseFirestore.instance
         .collection('mentor_profiles')
-        .doc(mentorId)
+        .doc(mentorProfileId)
         .get();
 
     if (!snap.exists || snap.data() == null) return null;
@@ -58,9 +59,7 @@ class ActiveMentorshipsScreen extends StatelessWidget {
 
     if (uid == null) {
       return Scaffold(
-        body: Center(
-          child: Text(t.t('error.unauthorized')),
-        ),
+        body: Center(child: Text(t.t('error.unauthorized'))),
       );
     }
 
@@ -76,6 +75,12 @@ class ActiveMentorshipsScreen extends StatelessWidget {
       body: StreamBuilder<List<MentorshipRequest>>(
         stream: _streamAcceptedRequests(uid),
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(debugFirebaseError(snapshot.error!)),
+            );
+          }
+
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -123,18 +128,18 @@ class _ActiveMentorshipCard extends StatelessWidget {
     required this.currentUid,
   });
 
+  /* ───────── END MENTORSHIP ───────── */
+
   Future<void> _endMentorship(BuildContext context) async {
     final t = AppLocalizations.of(context);
 
     try {
-      // ✅ 1. COMPLETE SESSION (THIS FEEDS ANALYTICS)
       await MentorshipSessionService().completeSession(
         sessionId: request.id,
         studentId: request.studentId,
         mentorId: request.mentorId,
       );
 
-      // ✅ 2. END MATCHING REQUEST
       await service.cancelRequest(
         requestId: request.id,
         studentId: request.studentId,
@@ -142,7 +147,6 @@ class _ActiveMentorshipCard extends StatelessWidget {
 
       if (!context.mounted) return;
 
-      // ✅ 3. GO TO RATING
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -151,48 +155,64 @@ class _ActiveMentorshipCard extends StatelessWidget {
           ),
         ),
       );
-    } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(t.t('common.error'))),
-      );
+    } catch (e) {
+      if (!context.mounted) return;
+      showDebugSnackBar(context, 'End mentorship failed', e);
     }
   }
 
-  Future<void> _openChat(BuildContext context) async {
-    final chatService = MentorshipChatService();
-    final t = AppLocalizations.of(context);
+  /* ───────── OPEN CHAT ───────── */
 
-    final chatId = chatService.buildChatId(
-      mentorId: request.mentorId,
-      studentId: request.studentId,
-    );
+  Future<void> _openChat(BuildContext context) async {
+    final t = AppLocalizations.of(context);
+    final chatService = MentorshipChatService();
 
     try {
+      // mentorId here = mentor_profiles doc id
+      final mentorProfileSnap = await FirebaseFirestore.instance
+          .collection('mentor_profiles')
+          .doc(request.mentorId)
+          .get();
+
+      final mentorUid =
+          (mentorProfileSnap.data()?['userId'] as String?) ?? '';
+
+      if (mentorUid.isEmpty) {
+        throw StateError(
+          'mentor_profiles/${request.mentorId} missing userId',
+        );
+      }
+
+      final chatId = chatService.buildChatId(
+        mentorUid: mentorUid,
+        studentUid: request.studentId,
+      );
+
       await chatService.ensureChatExists(
         chatId: chatId,
-        mentorId: request.mentorId,
-        studentId: request.studentId,
+        mentorUid: mentorUid,
+        studentUid: request.studentId,
+        mentorProfileId: request.mentorId,
       );
-    } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(t.t('common.error'))),
-      );
-      return;
-    }
 
-    if (!context.mounted) return;
+      if (!context.mounted) return;
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => MentorshipChatScreen(
-          chatId: chatId,
-          otherUserId: currentUid == request.studentId
-              ? request.mentorId
-              : request.studentId,
+      final otherUid =
+      currentUid == request.studentId ? mentorUid : request.studentId;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MentorshipChatScreen(
+            chatId: chatId,
+            otherUserId: otherUid,
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      showDebugSnackBar(context, 'Open chat failed', e);
+    }
   }
 
   @override
@@ -214,7 +234,7 @@ class _ActiveMentorshipCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
+                color: Colors.black.withOpacity(0.06),
                 blurRadius: 18,
                 offset: const Offset(0, 10),
               ),
@@ -227,7 +247,7 @@ class _ActiveMentorshipCard extends StatelessWidget {
                   CircleAvatar(
                     radius: 26,
                     backgroundColor:
-                    theme.colorScheme.primary.withValues(alpha: 0.12),
+                    theme.colorScheme.primary.withOpacity(0.12),
                     child: Icon(
                       Icons.school,
                       color: theme.colorScheme.primary,
@@ -263,8 +283,6 @@ class _ActiveMentorshipCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-
-              // 🔴 END MENTORSHIP
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(

@@ -3,81 +3,86 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/chat_message.dart';
 
 /// Handles 1-to-1 mentorship chat creation and messaging
-/// This service assumes access control is enforced by Firestore rules
+/// Access control is enforced by Firestore rules
 class MentorshipChatService {
   final FirebaseFirestore _db;
 
   MentorshipChatService({FirebaseFirestore? firestore})
       : _db = firestore ?? FirebaseFirestore.instance;
 
-  /// mentorship_chats/{chatId}
   CollectionReference<Map<String, dynamic>> get _chats =>
       _db.collection('mentorship_chats');
 
-  /// Builds a deterministic chat ID from mentor and student IDs
-  /// Prevents duplicate chats for the same pair
   String buildChatId({
-    required String mentorId,
-    required String studentId,
+    required String mentorUid,
+    required String studentUid,
   }) {
-    final parts = [mentorId, studentId]..sort();
+    final parts = [mentorUid, studentUid]..sort();
     return '${parts[0]}_${parts[1]}';
   }
 
-  /// mentorship_chats/{chatId}/messages/{messageId}
   CollectionReference<Map<String, dynamic>> _messagesRef(String chatId) {
     return _chats.doc(chatId).collection('messages');
   }
 
-  /// Creates the parent chat document if it does not exist
-  /// Safe to call multiple times
   Future<void> ensureChatExists({
     required String chatId,
-    required String mentorId,
-    required String studentId,
+    required String mentorUid,
+    required String studentUid,
+    String? mentorProfileId,
   }) async {
     final ref = _chats.doc(chatId);
     final doc = await ref.get();
     if (doc.exists) return;
 
     final now = Timestamp.now();
+
     await ref.set({
-      'mentorId': mentorId,
-      'studentId': studentId,
+      // ✅ NEW (rules use these)
+      'mentorUid': mentorUid,
+      'studentUid': studentUid,
+
+      // optional (nice to keep)
+      'mentorProfileId': mentorProfileId,
+
       'createdAt': now,
       'updatedAt': now,
       'lastMessageText': null,
       'lastMessageAt': null,
+
+      // ✅ BACKWARD COMPAT (old fields)
+      'mentorId': mentorUid,
+      'studentId': studentUid,
     });
   }
 
-  /// Sends a message and updates chat metadata
-  /// Message write and chat update are intentionally separate
   Future<String> sendMessage({
     required String chatId,
     required String senderId,
     required String text,
   }) async {
+    final clean = text.trim();
+    if (clean.isEmpty) return '';
+
     final now = Timestamp.now();
+
     final msg = await _messagesRef(chatId).add({
       'chatId': chatId,
       'senderId': senderId,
-      'text': text.trim(),
+      'text': clean,
       'createdAt': now,
-      'readBy': [senderId], // sender is considered read by default
+      'readBy': [senderId],
     });
 
     await _chats.doc(chatId).set({
       'updatedAt': now,
-      'lastMessageText': text.trim(),
+      'lastMessageText': clean,
       'lastMessageAt': now,
     }, SetOptions(merge: true));
 
     return msg.id;
   }
 
-  /// Streams recent messages for a chat
-  /// Messages are ordered descending for efficient pagination
   Stream<List<ChatMessage>> streamMessages(String chatId, {int limit = 50}) {
     return _messagesRef(chatId)
         .orderBy('createdAt', descending: true)
@@ -86,8 +91,6 @@ class MentorshipChatService {
         .map((snap) => snap.docs.map(ChatMessage.fromDoc).toList());
   }
 
-  /// Marks a message as read by a specific user
-  /// Uses a transaction to avoid duplicate writes
   Future<void> markMessageAsRead({
     required String chatId,
     required String messageId,
