@@ -1,17 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Handles higher-level analytics aggregation that goes beyond
-/// simple counts and sums.
+/// Aggregates higher-level analytics data.
+/// Used by admin dashboards and reports.
+/// Contains derived metrics only (no UI, no caching).
 class AnalyticsAggregatorService {
   final FirebaseFirestore _firestore;
 
   AnalyticsAggregatorService({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
-  // Activity Per Day (Admin)
+  // ───────────────── DAILY ACTIVITY (ADMIN) ─────────────────
 
-  /// Returns a map where the key is a date (yyyy-mm-dd)
-  /// Activity is derived from user lastLogin timestamps.
+  /// Returns daily active user counts based on `lastLogin`.
+  /// Key format: yyyy-mm-dd
   Future<Map<String, int>> getDailyActiveUsers({
     required DateTime start,
     required DateTime end,
@@ -24,7 +25,6 @@ class AnalyticsAggregatorService {
       if (lastLogin is! Timestamp) continue;
 
       final date = lastLogin.toDate();
-
       if (date.isBefore(start) || date.isAfter(end)) continue;
 
       final key = _formatDate(date);
@@ -34,8 +34,9 @@ class AnalyticsAggregatorService {
     return dailyActivity;
   }
 
-  // Mentor Workload (Admin)
-  /// Returns mentorship workload per mentor.
+  // ───────────────── MENTOR WORKLOAD (ADMIN) ─────────────────
+
+  /// Returns completed mentorship session count per mentor.
   /// Key: mentorId
   /// Value: number of completed sessions
   Future<Map<String, int>> getMentorWorkload() async {
@@ -56,9 +57,10 @@ class AnalyticsAggregatorService {
     return workload;
   }
 
-  // Resource Popularity (Admin)
-  /// Returns a list of resource IDs ordered by download count.
-  /// Used for "most downloaded resources".
+  // ───────────────── RESOURCE POPULARITY (ADMIN) ─────────────────
+
+  /// Returns resource IDs ordered by download count.
+  /// Used for "most downloaded resources" analytics.
   Future<List<String>> getMostDownloadedResources({
     int limit = 10,
   }) async {
@@ -71,9 +73,10 @@ class AnalyticsAggregatorService {
     return snapshot.docs.map((doc) => doc.id).toList();
   }
 
-  // Student Activity Summary (Derived)
-  /// Computes total active days for a user within a date range.
-  /// This is a derived metric and not stored.
+  // ───────────────── STUDENT ACTIVITY (DERIVED) ─────────────────
+
+  /// Computes active days for a student within a date range.
+  /// Based only on `lastLogin` (derived, not stored).
   Future<int> getStudentActiveDays({
     required String uid,
     required DateTime start,
@@ -87,14 +90,14 @@ class AnalyticsAggregatorService {
     final date = lastLogin.toDate();
     if (date.isBefore(start) || date.isAfter(end)) return 0;
 
-    // Since we only track lastLogin, this counts as 1 active day.
-    // More detailed tracking can be added later if needed.
+    // With current data, lastLogin counts as one active day.
     return 1;
   }
 
-  // Helpers
-  /// Formats a DateTime into yyyy-mm-dd
-  /// Used as a map key for daily aggregation.
+  // ───────────────── HELPERS ─────────────────
+
+  /// Formats DateTime as yyyy-mm-dd.
+  /// Used as a stable key for daily aggregation.
   String _formatDate(DateTime date) {
     final year = date.year.toString().padLeft(4, '0');
     final month = date.month.toString().padLeft(2, '0');

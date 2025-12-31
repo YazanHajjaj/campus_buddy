@@ -1,14 +1,16 @@
 /// Phase 9: Leaderboard query helpers
-/// Pure logic only – no UI, no Firebase.
+
 
 class LeaderboardQueryHelpers {
   /// Returns top [limit] users sorted by XP.
+
+  /// - Ensures stable ordering for consistent ranks & notifications
   static List<T> topUsersByXp<T>(
-    List<T> users, {
-    required int limit,
-    required int Function(T u) getXp,
-    String Function(T u)? getTieBreakerKey,
-  }) {
+      List<T> users, {
+        required int limit,
+        required int Function(T u) getXp,
+        String Function(T u)? getTieBreakerKey,
+      }) {
     final list = List<T>.from(users);
 
     list.sort((a, b) {
@@ -25,13 +27,18 @@ class LeaderboardQueryHelpers {
     return list.take(limit).toList();
   }
 
-  /// Builds a ranked list (1..N)
+  /// Builds a ranked list (1..N).
+  ///
+  /// Output is intentionally generic so it can be reused by:
+  /// - UI leaderboard
+  /// - Gamification badge logic
+  /// - Notification rules (e.g. "You reached rank #3")
   static List<Map<String, dynamic>> buildRankedList<T>(
-    List<T> users, {
-    required int Function(T u) getXp,
-    String Function(T u)? getName,
-    String Function(T u)? getId,
-  }) {
+      List<T> users, {
+        required int Function(T u) getXp,
+        String Function(T u)? getName,
+        String Function(T u)? getId,
+      }) {
     final sorted = topUsersByXp(
       users,
       limit: users.length,

@@ -1,16 +1,16 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import 'package:campus_buddy/core/services/auth_service.dart';
-import 'package:campus_buddy/features/profile/controllers/profile_controller.dart';
-import 'package:campus_buddy/features/profile/models/app_user.dart';
-import 'package:campus_buddy/features/profile/services/profile_storage_service.dart';
+import '../../core/localization/app_localizations.dart';
+import '../../core/services/auth_service.dart';
+import '../features/profile/controllers/profile_controller.dart';
+import '../features/profile/models/app_user.dart';
+import '../features/profile/services/profile_storage_service.dart';
 
-/// DEBUG TOOL — PROFILE MODULE
-/// Phase 3 verification screen
-/// Used to manually test profile backend logic.
-/// NOT part of production UI.
+/// Developer-only screen to test the Profile module backend.
+/// Used during Phase 3 verification. Not part of production UI.
 class DeveloperToolsProfileTest extends StatefulWidget {
   const DeveloperToolsProfileTest({super.key});
 
@@ -27,14 +27,13 @@ class _DeveloperToolsProfileTestState
   final _deptController = TextEditingController();
 
   final AuthService _authService = AuthService();
-
   late final ProfileController controller =
   ProfileController(service: ProfileStorageService());
 
   Stream<AppUser?>? _profileStream;
   AppUser? _currentUser;
 
-  /// Returns current auth UID or null if not signed in.
+  /// Returns the current authenticated user's UID.
   String? get _authUid {
     final user = _authService.currentUser;
     return user?.uid;
@@ -43,9 +42,7 @@ class _DeveloperToolsProfileTestState
   @override
   void initState() {
     super.initState();
-
-    // Show UID in the disabled field so it’s not dead UI
-    _uidController.text = _authUid ?? 'Not logged in';
+    _uidController.text = _authUid ?? '—';
   }
 
   @override
@@ -57,14 +54,10 @@ class _DeveloperToolsProfileTestState
     super.dispose();
   }
 
-  // ---------------------------------------------------------------------------
-  // DEBUG ACTIONS
-  // ---------------------------------------------------------------------------
-
   Future<void> _fetchProfile() async {
     final uid = _authUid;
     if (uid == null) {
-      _showSnack('User not authenticated');
+      _showSnack('error.unauthorized');
       return;
     }
 
@@ -77,7 +70,7 @@ class _DeveloperToolsProfileTestState
   void _startListening() {
     final uid = _authUid;
     if (uid == null) {
-      _showSnack('User not authenticated');
+      _showSnack('error.unauthorized');
       return;
     }
 
@@ -87,7 +80,7 @@ class _DeveloperToolsProfileTestState
   Future<void> _updateFields() async {
     final uid = _authUid;
     if (uid == null) {
-      _showSnack('User not authenticated');
+      _showSnack('error.unauthorized');
       return;
     }
 
@@ -105,13 +98,13 @@ class _DeveloperToolsProfileTestState
     );
 
     if (!mounted) return;
-    _showSnack('Profile updated');
+    _showSnack('profile.updated');
   }
 
   Future<void> _uploadImage() async {
     final uid = _authUid;
     if (uid == null) {
-      _showSnack('User not authenticated');
+      _showSnack('error.unauthorized');
       return;
     }
 
@@ -122,29 +115,26 @@ class _DeveloperToolsProfileTestState
     await controller.uploadImage(uid, File(file.path));
 
     if (!mounted) return;
-    _showSnack('Image uploaded');
+    _showSnack('profile.imageUploaded');
   }
 
   Future<void> _deleteImage() async {
     final uid = _authUid;
     if (uid == null) {
-      _showSnack('User not authenticated');
+      _showSnack('error.unauthorized');
       return;
     }
 
     await controller.deleteImage(uid);
 
     if (!mounted) return;
-    _showSnack('Profile image deleted');
+    _showSnack('profile.imageDeleted');
   }
 
-  // ---------------------------------------------------------------------------
-  // UI HELPERS
-  // ---------------------------------------------------------------------------
-
-  void _showSnack(String msg) {
+  void _showSnack(String key) {
+    final t = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg)),
+      SnackBar(content: Text(t.t(key))),
     );
   }
 
@@ -153,20 +143,20 @@ class _DeveloperToolsProfileTestState
       'Name: ${user.name}\n'
           'Email: ${user.email}\n'
           'Bio: ${user.bio}\n'
-          'Dept: ${user.department}\n'
+          'Department: ${user.department}\n'
           'Image: ${user.profileImageUrl}\n',
-      style: const TextStyle(fontSize: 16),
+      style: Theme.of(context).textTheme.bodyMedium,
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // BUILD (FIXED OVERFLOW)
-  // ---------------------------------------------------------------------------
-
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile Debug Tools')),
+      appBar: AppBar(
+        title: Text(t.t('profile.debugTools')),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -175,9 +165,9 @@ class _DeveloperToolsProfileTestState
             TextField(
               controller: _uidController,
               enabled: false,
-              decoration: const InputDecoration(
-                labelText: 'User UID (from auth)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: t.t('profile.userUid'),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -186,12 +176,12 @@ class _DeveloperToolsProfileTestState
               children: [
                 ElevatedButton(
                   onPressed: _fetchProfile,
-                  child: const Text('Fetch Profile'),
+                  child: Text(t.t('profile.fetch')),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: _startListening,
-                  child: const Text('Live Listen'),
+                  child: Text(t.t('profile.listen')),
                 ),
               ],
             ),
@@ -200,7 +190,7 @@ class _DeveloperToolsProfileTestState
 
             if (_currentUser != null) ...[
               Text(
-                'FETCHED PROFILE:',
+                t.t('profile.fetched'),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
@@ -213,14 +203,14 @@ class _DeveloperToolsProfileTestState
                 stream: _profileStream,
                 builder: (context, snap) {
                   if (snap.connectionState == ConnectionState.waiting) {
-                    return const Text('Waiting for profile data...');
+                    return Text(t.t('common.loading'));
                   }
                   if (snap.hasError) {
-                    return Text('Error: ${snap.error}');
+                    return Text('${t.t('common.error')}: ${snap.error}');
                   }
                   final user = snap.data;
                   if (user == null) {
-                    return const Text('No profile found.');
+                    return Text(t.t('profile.notFound'));
                   }
                   return _profileText(user);
                 },
@@ -230,23 +220,28 @@ class _DeveloperToolsProfileTestState
 
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(labelText: 'New Name'),
+              decoration: InputDecoration(
+                labelText: t.t('profile.newName'),
+              ),
             ),
             TextField(
               controller: _bioController,
-              decoration: const InputDecoration(labelText: 'New Bio'),
+              decoration: InputDecoration(
+                labelText: t.t('profile.newBio'),
+              ),
             ),
             TextField(
               controller: _deptController,
-              decoration:
-              const InputDecoration(labelText: 'New Department'),
+              decoration: InputDecoration(
+                labelText: t.t('profile.newDepartment'),
+              ),
             ),
 
             const SizedBox(height: 12),
 
             ElevatedButton(
               onPressed: _updateFields,
-              child: const Text('Update Fields'),
+              child: Text(t.t('profile.update')),
             ),
 
             const SizedBox(height: 12),
@@ -255,17 +250,15 @@ class _DeveloperToolsProfileTestState
               children: [
                 ElevatedButton(
                   onPressed: _uploadImage,
-                  child: const Text('Upload Image'),
+                  child: Text(t.t('profile.uploadImage')),
                 ),
                 const SizedBox(width: 8),
                 OutlinedButton(
                   onPressed: _deleteImage,
-                  child: const Text('Delete Image'),
+                  child: Text(t.t('profile.deleteImage')),
                 ),
               ],
             ),
-
-            const SizedBox(height: 24),
           ],
         ),
       ),

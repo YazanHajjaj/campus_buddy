@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import '../models/auth_user.dart';
 
 /// Firestore operations for AuthUser records.
-/// Handles system-level user identity data only.
 class FirestoreUserService {
   FirestoreUserService._internal();
   static final FirestoreUserService _instance =
@@ -35,7 +34,7 @@ class FirestoreUserService {
     );
   }
 
-  /// Updates lastLogin timestamp for the given uid.
+  /// Updates last login timestamp.
   Future<void> updateLastLogin(String uid, DateTime timestamp) async {
     await _usersRef.doc(uid).set(
       {'lastLogin': Timestamp.fromDate(timestamp)},
@@ -43,7 +42,34 @@ class FirestoreUserService {
     );
   }
 
-  /// Creates or updates an AuthUser from a FirebaseAuth user.
+  /// Updates a single onboarding checklist flag.
+  Future<void> updateOnboardingFlag(
+      String uid,
+      String key,
+      bool value,
+      ) async {
+    await _usersRef.doc(uid).set(
+      {
+        'onboardingChecklist': {
+          key: value,
+        }
+      },
+      SetOptions(merge: true),
+    );
+  }
+
+  /// Ensures gamification-related fields exist.
+  Future<void> ensureGamificationFields(String uid) async {
+    await _usersRef.doc(uid).set(
+      {
+        'xp': 0,
+        'earnedBadges': <String>[],
+      },
+      SetOptions(merge: true),
+    );
+  }
+
+  /// Creates or updates an AuthUser from FirebaseAuth.
   Future<AuthUser> upsertUserFromFirebaseUser(
       fb_auth.User firebaseUser,
       ) async {
@@ -52,7 +78,6 @@ class FirestoreUserService {
     final existing = await docRef.get();
 
     if (!existing.exists || existing.data() == null) {
-      // first-time creation
       final newUser = AuthUser(
         uid: firebaseUser.uid,
         email: firebaseUser.email,
@@ -62,21 +87,27 @@ class FirestoreUserService {
         lastLogin: now,
       );
 
-      await docRef.set(newUser.toMap());
-      return newUser;
-    } else {
-      // update metadata
-      await docRef.set(
-        {
-          'lastLogin': Timestamp.fromDate(now),
-          'isAnonymous': firebaseUser.isAnonymous,
-          'email': firebaseUser.email,
-        },
-        SetOptions(merge: true),
-      );
+      await docRef.set({
+        ...newUser.toMap(),
+        'xp': 0,
+        'earnedBadges': <String>[],
+      });
 
-      final updated = await docRef.get();
-      return AuthUser.fromMap(updated.data()!, updated.id);
+      return newUser;
     }
+
+    await docRef.set(
+      {
+        'lastLogin': Timestamp.fromDate(now),
+        'isAnonymous': firebaseUser.isAnonymous,
+        'email': firebaseUser.email,
+      },
+      SetOptions(merge: true),
+    );
+
+    await ensureGamificationFields(firebaseUser.uid);
+
+    final updated = await docRef.get();
+    return AuthUser.fromMap(updated.data()!, updated.id);
   }
 }

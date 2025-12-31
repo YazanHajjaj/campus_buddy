@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Request lifecycle is stored as a string in Firestore
-/// Enum is used in code to avoid magic strings and invalid states
+/// Lifecycle states for a mentorship request
 enum MentorshipRequestStatus {
   pending,
   accepted,
@@ -9,10 +8,9 @@ enum MentorshipRequestStatus {
   canceled,
 }
 
-/// Converts Firestore string value into enum
-/// Defaults to `pending` to handle missing or legacy data safely
-MentorshipRequestStatus requestStatusFromString(String? s) {
-  switch (s) {
+/// Converts Firestore string → enum
+MentorshipRequestStatus requestStatusFromString(String? value) {
+  switch (value) {
     case 'accepted':
       return MentorshipRequestStatus.accepted;
     case 'rejected':
@@ -25,22 +23,19 @@ MentorshipRequestStatus requestStatusFromString(String? s) {
   }
 }
 
-/// Converts enum back to Firestore-safe string
-String requestStatusToString(MentorshipRequestStatus s) {
-  return s.name;
+/// Converts enum → Firestore string
+String requestStatusToString(MentorshipRequestStatus status) {
+  return status.name;
 }
 
-/// Represents a single mentorship request between a student and a mentor
-/// Stored in `mentorship_requests/{requestId}`
+/// Represents a document in:
+/// mentorship_requests/{requestId}
 class MentorshipRequest {
-  /// Firestore document ID
   final String id;
   final String studentId;
   final String mentorId;
   final String? message;
   final MentorshipRequestStatus status;
-
-  /// Audit timestamps
   final Timestamp createdAt;
   final Timestamp updatedAt;
 
@@ -54,8 +49,7 @@ class MentorshipRequest {
     required this.updatedAt,
   });
 
-  /// Firestore serialization
-  /// `id` is excluded since it's the document key
+  /// Used only if needed later (not required now)
   Map<String, dynamic> toMap() {
     return {
       'studentId': studentId,
@@ -67,20 +61,24 @@ class MentorshipRequest {
     };
   }
 
-  /// Safe Firestore deserialization
-  /// Handles missing fields and invalid status values gracefully
+  /// Safe Firestore → Model parser
   static MentorshipRequest fromDoc(
       DocumentSnapshot<Map<String, dynamic>> doc,
       ) {
-    final data = doc.data() ?? {};
+    final data = doc.data();
+
+    if (data == null) {
+      throw StateError('MentorshipRequest document ${doc.id} has no data');
+    }
+
     return MentorshipRequest(
       id: doc.id,
-      studentId: (data['studentId'] ?? '') as String,
-      mentorId: (data['mentorId'] ?? '') as String,
+      studentId: (data['studentId'] as String?) ?? '',
+      mentorId: (data['mentorId'] as String?) ?? '',
       message: data['message'] as String?,
       status: requestStatusFromString(data['status'] as String?),
-      createdAt: (data['createdAt'] ?? Timestamp.now()) as Timestamp,
-      updatedAt: (data['updatedAt'] ?? Timestamp.now()) as Timestamp,
+      createdAt: (data['createdAt'] as Timestamp?) ?? Timestamp.now(),
+      updatedAt: (data['updatedAt'] as Timestamp?) ?? Timestamp.now(),
     );
   }
 }

@@ -1,29 +1,66 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Represents a mentor-facing profile stored in `mentor_profiles/{mentorId}`
-/// This is intentionally separate from `users/{uid}` to avoid coupling
-/// mentorship-specific data with auth / general profile data.
+/// Represents a mentor profile stored in:
+/// mentor_profiles/{authUid}
+///
+/// FINAL RULES (DO NOT CHANGE):
+/// - documentId == FirebaseAuth.uid
+/// - userId == FirebaseAuth.uid (duplicated for clarity / joins)
+/// - mentorship_requests.mentorId == FirebaseAuth.uid
+///
+/// This model is intentionally:
+/// - Immutable
+/// - Firestore-safe
+/// - Backward compatible with older documents
 class MentorProfile {
+  /* ───────────────── IDENTIFIERS ───────────────── */
 
+  /// Firestore document ID (mentor_profiles/{uid})
   final String id;
 
-  /// References users/{uid}
-  /// Used for permission checks and joins with user profile data
+  /// Firebase Auth UID (duplicated for clarity)
   final String userId;
 
-  /// Display name shown in mentor lists and details
+  /* ───────────────── DISPLAY INFO ───────────────── */
+
   final String name;
   final String? photoUrl;
   final String? bio;
+
+  /* ───────────────── ACADEMIC INFO ───────────────── */
+
   final String? department;
   final String? faculty;
+
+  /* ───────────────── EXPERTISE ───────────────── */
+
+  /// List of mentor expertise tags (e.g. "Flutter", "AI", "Math")
   final List<String> expertise;
+
+  /* ───────────────── STATUS ───────────────── */
+
+  /// Whether mentor is accepting new requests
   final bool isActive;
+
+  /* ───────────────── RATINGS ───────────────── */
+
+  /// Average rating (0.0 – 5.0)
+  /// Stored explicitly to avoid recalculation
   final double ratingAvg;
+
+  /// Total number of submitted ratings
   final int ratingCount;
+
+  /* ───────────────── LOAD TRACKING ───────────────── */
+
+  /// Currently active mentees
   final int activeMenteesCount;
 
-  /// Audit timestamps
+  /// Maximum allowed concurrent mentees
+  final int maxActiveMentees;
+
+  /* ───────────────── AUDIT ───────────────── */
+
   final Timestamp createdAt;
   final Timestamp updatedAt;
 
@@ -40,14 +77,16 @@ class MentorProfile {
     required this.ratingAvg,
     required this.ratingCount,
     required this.activeMenteesCount,
+    required this.maxActiveMentees,
     required this.createdAt,
     required this.updatedAt,
   });
 
-  /// Used mainly by services when partially updating mentor data
+  /* ───────────────── COPY ───────────────── */
+
+  /// Creates a modified copy of the profile.
+  /// Used when updating Firestore documents.
   MentorProfile copyWith({
-    String? id,
-    String? userId,
     String? name,
     String? photoUrl,
     String? bio,
@@ -58,12 +97,12 @@ class MentorProfile {
     double? ratingAvg,
     int? ratingCount,
     int? activeMenteesCount,
-    Timestamp? createdAt,
+    int? maxActiveMentees,
     Timestamp? updatedAt,
   }) {
     return MentorProfile(
-      id: id ?? this.id,
-      userId: userId ?? this.userId,
+      id: id,
+      userId: userId,
       name: name ?? this.name,
       photoUrl: photoUrl ?? this.photoUrl,
       bio: bio ?? this.bio,
@@ -73,14 +112,18 @@ class MentorProfile {
       isActive: isActive ?? this.isActive,
       ratingAvg: ratingAvg ?? this.ratingAvg,
       ratingCount: ratingCount ?? this.ratingCount,
-      activeMenteesCount: activeMenteesCount ?? this.activeMenteesCount,
-      createdAt: createdAt ?? this.createdAt,
+      activeMenteesCount:
+      activeMenteesCount ?? this.activeMenteesCount,
+      maxActiveMentees:
+      maxActiveMentees ?? this.maxActiveMentees,
+      createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
-  /// Firestore serialization
-  /// `id` is excluded because it's the document key
+  /* ───────────────── FIRESTORE ───────────────── */
+
+  /// Converts this model to Firestore-compatible map.
   Map<String, dynamic> toMap() {
     return {
       'userId': userId,
@@ -94,35 +137,60 @@ class MentorProfile {
       'ratingAvg': ratingAvg,
       'ratingCount': ratingCount,
       'activeMenteesCount': activeMenteesCount,
+      'maxActiveMentees': maxActiveMentees,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
     };
   }
 
-  /// Safe Firestore deserialization
-  /// Handles missing / legacy fields without crashing
-  static MentorProfile fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+  /// Builds a MentorProfile from Firestore document.
+  ///
+  /// Defensive defaults ensure:
+  /// - Old documents still work
+  /// - Missing fields do not crash the app
+  static MentorProfile fromDoc(
+      DocumentSnapshot<Map<String, dynamic>> doc,
+      ) {
     final data = doc.data() ?? {};
+
     return MentorProfile(
       id: doc.id,
-      userId: (data['userId'] ?? '') as String,
+      userId: (data['userId'] ?? doc.id) as String,
       name: (data['name'] ?? '') as String,
       photoUrl: data['photoUrl'] as String?,
       bio: data['bio'] as String?,
       department: data['department'] as String?,
       faculty: data['faculty'] as String?,
-      expertise: List<String>.from((data['expertise'] ?? const []) as List),
+      expertise: List<String>.from(data['expertise'] ?? const []),
       isActive: (data['isActive'] ?? true) as bool,
-      ratingAvg: _asDouble(data['ratingAvg'], fallback: 0.0),
+
+      // Ratings default to 0 for mentors without reviews
+      ratingAvg: _asDouble(data['ratingAvg']),
       ratingCount: (data['ratingCount'] ?? 0) as int,
-      activeMenteesCount: (data['activeMenteesCount'] ?? 0) as int,
-      createdAt: (data['createdAt'] ?? Timestamp.now()) as Timestamp,
-      updatedAt: (data['updatedAt'] ?? Timestamp.now()) as Timestamp,
+
+      activeMenteesCount:
+      (data['activeMenteesCount'] ?? 0) as int,
+      maxActiveMentees:
+      (data['maxActiveMentees'] ?? 0) as int,
+
+      createdAt:
+      (data['createdAt'] ?? Timestamp.now()) as Timestamp,
+      updatedAt:
+      (data['updatedAt'] ?? Timestamp.now()) as Timestamp,
     );
   }
 
-  /// Firestore sometimes stores numbers as int or double depending on writes
-  /// This avoids runtime cast errors when reading aggregates
+  /* ───────────────── COMPUTED ───────────────── */
+
+  /// Whether the mentor has reached capacity.
+  bool get isFull {
+    if (maxActiveMentees <= 0) return true;
+    return activeMenteesCount >= maxActiveMentees;
+  }
+
+  /* ───────────────── HELPERS ───────────────── */
+
+  /// Safely converts Firestore numeric values to double.
   static double _asDouble(dynamic v, {double fallback = 0.0}) {
     if (v == null) return fallback;
     if (v is double) return v;

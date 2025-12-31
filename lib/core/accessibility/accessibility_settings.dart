@@ -1,10 +1,12 @@
-/// Accessibility-related user preferences.
+/// User accessibility preferences.
 ///
-/// This file defines which accessibility options exist.
-/// Actual behavior is implemented later.
-
+/// Defines which accessibility options are available.
+/// Actual behavior is handled by theme and text-scaling layers.
 class AccessibilitySettings {
+  /// Enables high-contrast theme.
   final bool highContrastEnabled;
+
+  /// Preferred text scaling level.
   final TextScalePreference textScale;
 
   const AccessibilitySettings({
@@ -12,13 +14,16 @@ class AccessibilitySettings {
     required this.textScale,
   });
 
-  /// Default accessibility settings
+  /// Default values used on first launch.
   static const AccessibilitySettings defaults = AccessibilitySettings(
     highContrastEnabled: false,
     textScale: TextScalePreference.normal,
   );
 }
 
+/// Logical text scale options selected by the user.
+///
+/// Mapped to real scale factors elsewhere.
 enum TextScalePreference {
   small,
   normal,

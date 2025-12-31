@@ -1,13 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
-/// Simple Firestore diagnostics used by the Firebase health check screen.
+/// Firestore diagnostics used by the Firebase health check.
 class FirestoreTestService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   CollectionReference<Map<String, dynamic>> get _ref =>
       _db.collection('health_check');
 
-  /// Writes a diagnostic document for testing Firestore write access.
   Future<bool> testWrite() async {
     try {
       await _ref.doc('test_doc').set({
@@ -16,29 +16,27 @@ class FirestoreTestService {
       });
       return true;
     } catch (e) {
-      print('[FirestoreTestService] Write error: $e');
+      debugPrint('[FirestoreTestService] write failed');
       return false;
     }
   }
 
-  /// Reads the diagnostic document to verify read access.
   Future<bool> testRead() async {
     try {
       final doc = await _ref.doc('test_doc').get();
       return doc.exists;
     } catch (e) {
-      print('[FirestoreTestService] Read error: $e');
+      debugPrint('[FirestoreTestService] read failed');
       return false;
     }
   }
 
-  /// Retrieves the stored diagnostic document for display in the UI.
   Future<Map<String, dynamic>?> getTestDocument() async {
     try {
       final doc = await _ref.doc('test_doc').get();
       return doc.data();
     } catch (e) {
-      print('[FirestoreTestService] GetDocument error: $e');
+      debugPrint('[FirestoreTestService] fetch failed');
       return null;
     }
   }

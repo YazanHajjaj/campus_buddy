@@ -2,197 +2,284 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/mentorship_request.dart';
 import '../models/mentorship_session.dart';
+import '../../gamification/services/gamification_service.dart';
+import '../../../core/services/firestore_user_service.dart';
 
-/// Owns mentorship request lifecycle, session creation,
-/// and mentor matching logic.
-/// This service enforces cross-document consistency.
 class MentorshipMatchingService {
   final FirebaseFirestore _db;
+  final FirestoreUserService _userService = FirestoreUserService();
 
   MentorshipMatchingService({FirebaseFirestore? firestore})
       : _db = firestore ?? FirebaseFirestore.instance;
 
-  /// mentorship_requests/{requestId}
   CollectionReference<Map<String, dynamic>> get _requests =>
       _db.collection('mentorship_requests');
 
-  /// mentorship_sessions/{sessionId}
-  CollectionReference<Map<String, dynamic>> get _sessions =>
-      _db.collection('mentorship_sessions');
-
-  /// mentor_profiles/{mentorId}
   CollectionReference<Map<String, dynamic>> get _mentorProfiles =>
       _db.collection('mentor_profiles');
 
-  // ----- helpers -----
+  CollectionReference<Map<String, dynamic>> get _sessions =>
+      _db.collection('mentorship_sessions');
 
-  /// Ensures a student can only have one active pending request
-  /// This constraint is enforced at service level and backed by rules
-  Future<bool> _studentHasActiveRequest(String studentId) async {
-    final snap = await _requests
-        .where('studentId', isEqualTo: studentId)
-        .where('status', isEqualTo: 'pending')
-        .limit(1)
-        .get();
+  static const String _statusPending = 'pending';
+  static const String _statusAccepted = 'accepted';
+  static const String _statusRejected = 'rejected';
+  static const String _statusCanceled = 'canceled';
+  static const String _statusCompleted = 'completed';
 
-    return snap.docs.isNotEmpty;
+  // Returns: [uid] + any mentor profile doc ids owned by uid (old/random ids)
+  Future<List<String>> _resolveMentorIdsForUser(String uid) async {
+    final ids = <String>{uid};
+
+    try {
+      final snap = await _mentorProfiles.where('userId', isEqualTo: uid).get();
+      for (final d in snap.docs) {
+        ids.add(d.id);
+      }
+    } catch (_) {}
+
+    return ids.toList();
   }
 
-  // ----- requests -----
+  Future<DocumentReference<Map<String, dynamic>>?> _resolveMentorProfileRef(
+      String mentorId,
+      ) async {
+    final directRef = _mentorProfiles.doc(mentorId);
+    final directSnap = await directRef.get();
+    if (directSnap.exists) return directRef;
 
-  /// Creates a new mentorship request
-  /// Throws if the student already has a pending request
+    final q = await _mentorProfiles.where('userId', isEqualTo: mentorId).limit(1).get();
+    if (q.docs.isEmpty) return null;
+
+    return _mentorProfiles.doc(q.docs.first.id);
+  }
+
   Future<String> sendMentorshipRequest({
     required String studentId,
     required String mentorId,
     String? message,
   }) async {
-    if (await _studentHasActiveRequest(studentId)) {
-      throw StateError('Student already has an active request.');
+    // normalize to actual mentor profile doc
+    final mentorRef = await _resolveMentorProfileRef(mentorId);
+    if (mentorRef == null) throw StateError('Mentor profile not found.');
+
+    final mentorDocId = mentorRef.id;
+    final requestRef = _requests.doc();
+    final now = Timestamp.now();
+
+    final existing = await _requests
+        .where('studentId', isEqualTo: studentId)
+        .where('mentorId', isEqualTo: mentorDocId)
+        .where('status', whereIn: [_statusPending, _statusAccepted])
+        .limit(1)
+        .get();
+
+    if (existing.docs.isNotEmpty) {
+      throw StateError('You already have an active mentorship with this mentor.');
     }
 
-    final now = Timestamp.now();
-    final doc = await _requests.add({
-      'studentId': studentId,
-      'mentorId': mentorId,
-      'message': message,
-      'status': requestStatusToString(MentorshipRequestStatus.pending),
-      'createdAt': now,
-      'updatedAt': now,
+    await _db.runTransaction((tx) async {
+      final mentorSnap = await tx.get(mentorRef);
+      if (!mentorSnap.exists) throw StateError('Mentor profile not found.');
+
+      final data = mentorSnap.data() ?? {};
+      final active = (data['activeMenteesCount'] ?? 0) as int;
+      final max = (data['maxActiveMentees'] ?? 0) as int;
+
+      if (max > 0 && active >= max) {
+        throw StateError('Mentor is fully booked.');
+      }
+
+      tx.set(requestRef, {
+        'studentId': studentId,
+        'mentorId': mentorDocId,
+        'message': message?.trim(),
+        'status': _statusPending,
+        'createdAt': now,
+        'updatedAt': now,
+      });
     });
 
-    return doc.id;
+    _userService.updateOnboardingFlag(studentId, 'sentMentorshipRequest', true);
+    return requestRef.id;
   }
 
-  /// Allows a student to cancel their own pending request
-  /// Uses a transaction to prevent race conditions with mentor actions
   Future<void> cancelRequest({
     required String requestId,
     required String studentId,
   }) async {
-    final ref = _requests.doc(requestId);
+    final requestRef = _requests.doc(requestId);
 
     await _db.runTransaction((tx) async {
-      final snap = await tx.get(ref);
+      final snap = await tx.get(requestRef);
       if (!snap.exists) throw StateError('Request not found.');
 
-      final data = snap.data() as Map<String, dynamic>;
-      if ((data['studentId'] ?? '') != studentId) {
-        throw StateError('Not allowed.');
+      final data = snap.data() ?? {};
+      if (data['studentId'] != studentId) throw StateError('Not allowed.');
+
+      final status = data['status'] as String?;
+      final storedMentorId = (data['mentorId'] as String?) ?? '';
+
+      if (status == _statusAccepted) {
+        final mentorRef = await _resolveMentorProfileRef(storedMentorId);
+        if (mentorRef != null) {
+          final mentorSnap = await tx.get(mentorRef);
+          final active = (mentorSnap.data()?['activeMenteesCount'] ?? 1) as int;
+          tx.update(mentorRef, {
+            'activeMenteesCount': active > 0 ? active - 1 : 0,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
       }
 
-      final status = (data['status'] ?? 'pending') as String;
-      if (status != 'pending') return;
-
-      tx.update(ref, {
-        'status': requestStatusToString(MentorshipRequestStatus.canceled),
-        'updatedAt': Timestamp.now(),
+      tx.update(requestRef, {
+        'status': _statusCanceled,
+        'updatedAt': FieldValue.serverTimestamp(),
       });
     });
   }
 
-  /// Accepts a mentorship request and updates mentor load counters
-  /// Both operations are atomic to keep matching data consistent
   Future<void> acceptRequest({
     required String requestId,
-    required String mentorId,
+    required String mentorUid,
   }) async {
-    final reqRef = _requests.doc(requestId);
-    final mentorProfileRef = _mentorProfiles.doc(mentorId);
+    final requestRef = _requests.doc(requestId);
+    final allowedMentorIds = await _resolveMentorIdsForUser(mentorUid);
+
+    late String studentId;
+    late String storedMentorId;
 
     await _db.runTransaction((tx) async {
-      final reqSnap = await tx.get(reqRef);
-      if (!reqSnap.exists) {
-        throw StateError('Request not found.');
-      }
+      final reqSnap = await tx.get(requestRef);
+      if (!reqSnap.exists) throw StateError('Request not found.');
 
-      final reqData = reqSnap.data() as Map<String, dynamic>;
-      if ((reqData['mentorId'] ?? '') != mentorId) {
-        throw StateError('Not allowed.');
-      }
+      final req = reqSnap.data() ?? {};
+      storedMentorId = (req['mentorId'] as String?) ?? '';
+      final status = req['status'] as String?;
 
-      final status = (reqData['status'] ?? 'pending') as String;
-      if (status != 'pending') return;
+      if (!allowedMentorIds.contains(storedMentorId)) throw StateError('Not allowed.');
+      if (status != _statusPending) return;
 
-      final mentorSnap = await tx.get(mentorProfileRef);
-      final currentMentees =
-      mentorSnap.exists
-          ? (mentorSnap.data()?['activeMenteesCount'] ?? 0) as int
-          : 0;
+      studentId = req['studentId'] as String;
 
-      final now = Timestamp.now();
+      final mentorRef = await _resolveMentorProfileRef(storedMentorId);
+      if (mentorRef == null) throw StateError('Mentor profile missing.');
 
-      tx.update(reqRef, {
-        'status': requestStatusToString(MentorshipRequestStatus.accepted),
-        'updatedAt': now,
+      final mentorSnap = await tx.get(mentorRef);
+      final data = mentorSnap.data() ?? {};
+      final active = (data['activeMenteesCount'] ?? 0) as int;
+      final max = (data['maxActiveMentees'] ?? 0) as int;
+
+      if (max > 0 && active >= max) throw StateError('Mentor is fully booked.');
+
+      tx.update(requestRef, {
+        'status': _statusAccepted,
+        'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      if (mentorSnap.exists) {
-        tx.update(mentorProfileRef, {
-          'activeMenteesCount': currentMentees + 1,
-          'updatedAt': now,
+      tx.update(mentorRef, {
+        'activeMenteesCount': active + 1,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+
+    final gamification = GamificationService(firestore: _db);
+    await gamification.addXp(
+      uid: studentId,
+      amount: 100,
+      sourceType: 'mentorship_accepted',
+      sourceId: requestId,
+      reason: 'Mentorship accepted',
+    );
+  }
+
+  Future<void> rejectRequest({
+    required String requestId,
+    required String mentorUid,
+  }) async {
+    final requestRef = _requests.doc(requestId);
+    final allowedMentorIds = await _resolveMentorIdsForUser(mentorUid);
+
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(requestRef);
+      if (!snap.exists) throw StateError('Request not found.');
+
+      final data = snap.data() ?? {};
+      final storedMentorId = (data['mentorId'] as String?) ?? '';
+      final status = data['status'] as String?;
+
+      if (!allowedMentorIds.contains(storedMentorId)) throw StateError('Not allowed.');
+      if (status != _statusPending) return;
+
+      tx.update(requestRef, {
+        'status': _statusRejected,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+  }
+
+  Future<void> completeRequest({
+    required String requestId,
+    required String endedByUid,
+  }) async {
+    final requestRef = _requests.doc(requestId);
+
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(requestRef);
+      if (!snap.exists) throw StateError('Mentorship request not found.');
+
+      final data = snap.data() ?? {};
+      final studentId = data['studentId'] as String;
+      final storedMentorId = data['mentorId'] as String;
+
+      // participant check: student or mentor user
+      final mentorRef = await _resolveMentorProfileRef(storedMentorId);
+      final mentorOwnerUid = mentorRef == null ? storedMentorId : (await mentorRef.get()).data()?['userId'];
+
+      final isParticipant = endedByUid == studentId || endedByUid == mentorOwnerUid;
+      if (!isParticipant) throw StateError('Unauthorized');
+
+      if (data['status'] != _statusAccepted) throw StateError('Mentorship not active');
+
+      tx.update(requestRef, {
+        'status': _statusCompleted,
+        'completedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (mentorRef != null) {
+        tx.update(mentorRef, {
+          'activeMenteesCount': FieldValue.increment(-1),
+          'updatedAt': FieldValue.serverTimestamp(),
         });
       }
     });
   }
 
-  /// Rejects a mentorship request
-  /// Does not modify mentor counters
-  Future<void> rejectRequest({
-    required String requestId,
-    required String mentorId,
-  }) async {
-    final ref = _requests.doc(requestId);
+  Stream<List<MentorshipRequest>> streamIncomingRequestsForMentor(String uid) async* {
+    final mentorIds = await _resolveMentorIdsForUser(uid);
 
-    await _db.runTransaction((tx) async {
-      final snap = await tx.get(ref);
-      if (!snap.exists) throw StateError('Request not found.');
+    Query<Map<String, dynamic>> q;
+    if (mentorIds.length == 1) {
+      q = _requests.where('mentorId', isEqualTo: mentorIds.first);
+    } else {
+      q = _requests.where('mentorId', whereIn: mentorIds.take(10).toList());
+    }
 
-      final data = snap.data() as Map<String, dynamic>;
-      if ((data['mentorId'] ?? '') != mentorId) {
-        throw StateError('Not allowed.');
-      }
-
-      final status = (data['status'] ?? 'pending') as String;
-      if (status != 'pending') return;
-
-      tx.update(ref, {
-        'status': requestStatusToString(MentorshipRequestStatus.rejected),
-        'updatedAt': Timestamp.now(),
-      });
-    });
-  }
-
-  /// Streams incoming requests for a mentor dashboard
-  Stream<List<MentorshipRequest>> streamIncomingRequestsForMentor(
-      String mentorId, {
-        int limit = 50,
-      }) {
-    return _requests
-        .where('mentorId', isEqualTo: mentorId)
+    yield* q
         .orderBy('createdAt', descending: true)
-        .limit(limit)
         .snapshots()
         .map((snap) => snap.docs.map(MentorshipRequest.fromDoc).toList());
   }
 
-  /// Streams all requests created by a student
-  Stream<List<MentorshipRequest>> streamMyRequestsForStudent(
-      String studentId, {
-        int limit = 50,
-      }) {
+  Stream<List<MentorshipRequest>> streamMyRequestsForStudent(String studentId) {
     return _requests
         .where('studentId', isEqualTo: studentId)
         .orderBy('createdAt', descending: true)
-        .limit(limit)
         .snapshots()
         .map((snap) => snap.docs.map(MentorshipRequest.fromDoc).toList());
   }
 
-  // ----- sessions -----
-
-  /// Creates a scheduled mentorship session
-  /// Called only after a request is accepted
   Future<String> createSession({
     required String mentorId,
     required String studentId,
@@ -201,82 +288,18 @@ class MentorshipMatchingService {
     String? notes,
   }) async {
     final now = Timestamp.now();
+
     final doc = await _sessions.add({
       'mentorId': mentorId,
       'studentId': studentId,
       'scheduledAt': Timestamp.fromDate(scheduledAt),
       'durationMinutes': durationMinutes,
-      'notes': notes,
+      'notes': notes?.trim(),
       'status': sessionStatusToString(MentorshipSessionStatus.scheduled),
       'createdAt': now,
       'updatedAt': now,
     });
 
     return doc.id;
-  }
-
-  /// Streams sessions for a student
-  /// Mentor sessions are queried separately to avoid OR queries
-  Stream<List<MentorshipSession>> streamSessionsForUser(
-      String uid, {
-        int limit = 50,
-      }) {
-    return _sessions
-        .where('studentId', isEqualTo: uid)
-        .orderBy('scheduledAt', descending: true)
-        .limit(limit)
-        .snapshots()
-        .map((snap) => snap.docs.map(MentorshipSession.fromDoc).toList());
-  }
-
-  /// Streams sessions for a mentor
-  Stream<List<MentorshipSession>> streamSessionsForMentor(
-      String mentorId, {
-        int limit = 50,
-      }) {
-    return _sessions
-        .where('mentorId', isEqualTo: mentorId)
-        .orderBy('scheduledAt', descending: true)
-        .limit(limit)
-        .snapshots()
-        .map((snap) => snap.docs.map(MentorshipSession.fromDoc).toList());
-  }
-
-  // ----- matching -----
-
-  /// Returns a ranked list of mentor IDs for a student
-  /// Scoring favors high rating and lower active mentee count
-  Future<List<String>> recommendMentorsForStudent({
-    required String studentDepartment,
-    int limit = 10,
-  }) async {
-    final snap = await _mentorProfiles
-        .where('isActive', isEqualTo: true)
-        .where('department', isEqualTo: studentDepartment)
-        .limit(50)
-        .get();
-
-    final scored = snap.docs.map((doc) {
-      final d = doc.data();
-      final rating = _asDouble(d['ratingAvg']);
-      final mentees = (d['activeMenteesCount'] ?? 0) as int;
-
-      // Higher score = higher priority
-      final score = (rating * 10.0) - (mentees * 1.5);
-      return MapEntry(doc.id, score);
-    }).toList();
-
-    scored.sort((a, b) => b.value.compareTo(a.value));
-
-    return scored.take(limit).map((e) => e.key).toList();
-  }
-
-  /// Normalizes Firestore numeric values
-  double _asDouble(dynamic v) {
-    if (v == null) return 0.0;
-    if (v is double) return v;
-    if (v is int) return v.toDouble();
-    if (v is num) return v.toDouble();
-    return 0.0;
   }
 }

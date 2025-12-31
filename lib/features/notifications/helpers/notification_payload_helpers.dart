@@ -1,7 +1,15 @@
 /// Centralized notification payload definitions.
+///
 /// This file defines:
+/// - Standard payload keys
+/// - Locked notification types
+/// - Helper builders for consistent payload creation
+///
+/// This is used by BOTH:
+/// - Local notifications (now)
+/// - Push notifications (later)
 class NotificationPayload {
-  // Payload keys (used everywhere)
+  /* ───────────────── PAYLOAD KEYS ───────────────── */
 
   static const String keyTitle = 'title';
   static const String keyBody = 'body';
@@ -9,7 +17,7 @@ class NotificationPayload {
   static const String keyReferenceId = 'referenceId';
   static const String keySentAt = 'sentAt';
 
-  // Notification types (LOCKED)
+  /* ───────────────── NOTIFICATION TYPES (LOCKED) ───────────────── */
 
   // Events
   static const String eventCreated = 'event_created';
@@ -28,6 +36,8 @@ class NotificationPayload {
       'study_group_created';
   static const String studyGroupMessage =
       'study_group_message';
+  static const String studyGroupSessionReminder =
+      'study_group_session_reminder';
 
   // Gamification
   static const String levelUp = 'level_up';
@@ -42,7 +52,7 @@ class NotificationPayload {
       'profile_completion_reminder';
   static const String featureUpdate = 'feature_update';
 
-  // Helper builders
+  /* ───────────────── BASE BUILDER ───────────────── */
 
   /// Base payload builder used by all notifications.
   static Map<String, dynamic> buildBasePayload({
@@ -60,7 +70,8 @@ class NotificationPayload {
     };
   }
 
-  /// Event-related payload helper.
+  /* ───────────────── EVENT HELPERS ───────────────── */
+
   static Map<String, dynamic> eventPayload({
     required String title,
     required String body,
@@ -75,7 +86,8 @@ class NotificationPayload {
     );
   }
 
-  /// Mentorship-related payload helper.
+  /* ───────────────── MENTORSHIP HELPERS ───────────────── */
+
   static Map<String, dynamic> mentorshipPayload({
     required String title,
     required String body,
@@ -90,7 +102,8 @@ class NotificationPayload {
     );
   }
 
-  /// Study group-related payload helper.
+  /* ───────────────── STUDY GROUP HELPERS ───────────────── */
+
   static Map<String, dynamic> studyGroupPayload({
     required String title,
     required String body,
@@ -105,7 +118,22 @@ class NotificationPayload {
     );
   }
 
-  /// Gamification-related payload helper.
+  /// Study group session reminder payload.
+  static Map<String, dynamic> studyGroupSessionPayload({
+    required String title,
+    required String body,
+    required String sessionId,
+  }) {
+    return buildBasePayload(
+      title: title,
+      body: body,
+      type: studyGroupSessionReminder,
+      referenceId: sessionId,
+    );
+  }
+
+  /* ───────────────── GAMIFICATION HELPERS ───────────────── */
+
   static Map<String, dynamic> gamificationPayload({
     required String title,
     required String body,
@@ -118,7 +146,8 @@ class NotificationPayload {
     );
   }
 
-  /// Admin / system-level payload helper.
+  /* ───────────────── SYSTEM / ADMIN HELPERS ───────────────── */
+
   static Map<String, dynamic> systemPayload({
     required String title,
     required String body,

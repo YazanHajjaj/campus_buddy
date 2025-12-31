@@ -1,3 +1,5 @@
+/// Defines where XP originates from.
+/// Used for grouping, analytics, and UI sections.
 enum XpSource {
   resources,
   events,
@@ -6,19 +8,32 @@ enum XpSource {
   system,
 }
 
+/// Declarative XP rule.
+/// IMPORTANT:
+/// - No logic here
+/// - No localization resolution here
+/// - Uses translation KEYS only
 class XpRule {
   final String key;
   final XpSource source;
+
+  /// XP amount granted per action
   final int amount;
-  final String label;
+
+  /// Localization key for UI & notifications
+  final String labelKey;
+
+  /// Whether the action can be repeated
   final bool repeatable;
+
+  /// Optional daily XP cap (anti-farming)
   final int? dailyCap;
 
   const XpRule({
     required this.key,
     required this.source,
     required this.amount,
-    required this.label,
+    required this.labelKey,
     required this.repeatable,
     this.dailyCap,
   });
@@ -33,27 +48,27 @@ class XpRules {
     key: 'resource.viewed',
     source: XpSource.resources,
     amount: 10,
-    label: 'Viewed a resource',
+    labelKey: 'xp.resourceViewed',
     repeatable: true,
-    dailyCap: 150, // avoid farming
+    dailyCap: 150,
   );
 
   static const XpRule resourceDownloaded = XpRule(
     key: 'resource.downloaded',
     source: XpSource.resources,
     amount: 12,
-    label: 'Downloaded a resource',
+    labelKey: 'xp.resourceDownloaded',
     repeatable: true,
-    dailyCap: 120, // capped daily
+    dailyCap: 120,
   );
 
   static const XpRule resourceUploaded = XpRule(
     key: 'resource.uploaded',
     source: XpSource.resources,
     amount: 25,
-    label: 'Uploaded a resource',
+    labelKey: 'xp.resourceUploaded',
     repeatable: true,
-    dailyCap: 75, // heavier action
+    dailyCap: 75,
   );
 
   // ---------------- Events ----------------
@@ -62,7 +77,7 @@ class XpRules {
     key: 'event.rsvp',
     source: XpSource.events,
     amount: 8,
-    label: 'RSVP’d to an event',
+    labelKey: 'xp.eventRsvp',
     repeatable: true,
     dailyCap: 40,
   );
@@ -71,9 +86,9 @@ class XpRules {
     key: 'event.attended',
     source: XpSource.events,
     amount: 20,
-    label: 'Attended an event',
+    labelKey: 'xp.eventAttended',
     repeatable: true,
-    dailyCap: 60, // attendance > intent
+    dailyCap: 60,
   );
 
   // ---------------- Mentorship ----------------
@@ -82,15 +97,15 @@ class XpRules {
     key: 'mentorship.request_sent',
     source: XpSource.mentorship,
     amount: 10,
-    label: 'Sent a mentorship request',
-    repeatable: false, // repeatable vs not
+    labelKey: 'xp.mentorshipRequestSent',
+    repeatable: false,
   );
 
   static const XpRule mentorshipSessionCompleted = XpRule(
     key: 'mentorship.session_completed',
     source: XpSource.mentorship,
     amount: 30,
-    label: 'Completed a mentorship session',
+    labelKey: 'xp.mentorshipSessionCompleted',
     repeatable: true,
     dailyCap: 60,
   );
@@ -99,9 +114,9 @@ class XpRules {
     key: 'mentorship.chat_message',
     source: XpSource.mentorship,
     amount: 5,
-    label: 'Sent a mentorship message',
+    labelKey: 'xp.mentorshipChatMessage',
     repeatable: true,
-    dailyCap: 150, // avoid spam
+    dailyCap: 150,
   );
 
   // ---------------- Study Groups ----------------
@@ -110,7 +125,7 @@ class XpRules {
     key: 'study_group.joined',
     source: XpSource.studyGroups,
     amount: 15,
-    label: 'Joined a study group',
+    labelKey: 'xp.studyGroupJoined',
     repeatable: false,
   );
 
@@ -118,19 +133,18 @@ class XpRules {
     key: 'study_group.chat_message',
     source: XpSource.studyGroups,
     amount: 4,
-    label: 'Sent a study group message',
+    labelKey: 'xp.studyGroupChatMessage',
     repeatable: true,
     dailyCap: 120,
   );
 
   // ---------------- System ----------------
-  // depends on analytics (active days, streaks)
 
   static const XpRule dailyActive = XpRule(
     key: 'system.daily_active',
     source: XpSource.system,
     amount: 10,
-    label: 'Active day bonus',
+    labelKey: 'xp.dailyActive',
     repeatable: true,
     dailyCap: 10,
   );
@@ -139,7 +153,7 @@ class XpRules {
     key: 'system.streak_7',
     source: XpSource.system,
     amount: 40,
-    label: '7-day streak bonus',
+    labelKey: 'xp.streak7',
     repeatable: true,
     dailyCap: 40,
   );
@@ -148,10 +162,12 @@ class XpRules {
     key: 'system.streak_30',
     source: XpSource.system,
     amount: 120,
-    label: '30-day streak bonus',
+    labelKey: 'xp.streak30',
     repeatable: true,
     dailyCap: 120,
   );
+
+  // ---------------- Registry ----------------
 
   static const List<XpRule> all = [
     resourceViewed,
@@ -185,6 +201,12 @@ class XpRules {
     'system.streak_30': streakBonus30,
   };
 
+  /// Converts total XP into a level.
+  ///
+  /// Rules:
+  /// - Level 1 starts at 0 XP
+  /// - Each level requires +50 XP more than the previous
+  /// - Hard cap at level 50
   static int levelForTotalXp(int totalXp) {
     if (totalXp < 0) return 1;
 
@@ -196,6 +218,7 @@ class XpRules {
       threshold += step;
       level += 1;
       step += 50;
+
       if (level > 50) break;
     }
 

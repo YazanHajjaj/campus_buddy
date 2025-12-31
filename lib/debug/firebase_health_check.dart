@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:campus_buddy/debug/storage_test_screen.dart';
 
-/// Lightweight diagnostics screen for validating Firebase functionality.
+import '../../core/localization/app_localizations.dart';
+import 'storage_test_screen.dart';
+
+/// Developer-only screen to validate Firebase setup.
+/// Used to verify core, auth, and Firestore connectivity.
 class FirebaseHealthCheckScreen extends StatefulWidget {
   const FirebaseHealthCheckScreen({super.key});
 
@@ -14,69 +17,67 @@ class FirebaseHealthCheckScreen extends StatefulWidget {
 }
 
 class _FirebaseHealthCheckScreenState extends State<FirebaseHealthCheckScreen> {
-  String coreStatus = "Pending";
-  String authStatus = "Pending";
-  String firestoreWriteStatus = "Pending";
-  String firestoreReadStatus = "Pending";
+  String coreStatus = 'pending';
+  String authStatus = 'pending';
+  String firestoreWriteStatus = 'pending';
+  String firestoreReadStatus = 'pending';
 
   Map<String, dynamic>? testDocument;
 
   Future<void> runChecks() async {
     setState(() {
-      coreStatus = "Checking...";
-      authStatus = "Pending";
-      firestoreWriteStatus = "Pending";
-      firestoreReadStatus = "Pending";
+      coreStatus = 'checking';
+      authStatus = 'pending';
+      firestoreWriteStatus = 'pending';
+      firestoreReadStatus = 'pending';
       testDocument = null;
     });
 
     // Firebase Core
     try {
       final apps = Firebase.apps;
-      coreStatus = apps.isNotEmpty ? "OK" : "FAILED";
-    } catch (e) {
-      coreStatus = "FAILED: $e";
+      coreStatus = apps.isNotEmpty ? 'ok' : 'failed';
+    } catch (_) {
+      coreStatus = 'failed';
     }
 
     // Auth (anonymous)
     try {
       final cred = await FirebaseAuth.instance.signInAnonymously();
-      final user = cred.user;
-      authStatus = user != null ? "OK (UID: ${user.uid})" : "FAILED";
-    } catch (e) {
-      authStatus = "FAILED: $e";
+      authStatus = cred.user != null ? 'ok' : 'failed';
+    } catch (_) {
+      authStatus = 'failed';
     }
 
     // Firestore write
     try {
-      final testRef =
-      FirebaseFirestore.instance.collection("health_check_test");
+      final ref =
+      FirebaseFirestore.instance.collection('health_check_test');
 
-      await testRef.doc("test_doc").set({
-        "timestamp": DateTime.now().toIso8601String(),
-        "status": "write_success",
+      await ref.doc('test_doc').set({
+        'timestamp': DateTime.now().toIso8601String(),
+        'status': 'write_success',
       });
 
-      firestoreWriteStatus = "OK";
-    } catch (e) {
-      firestoreWriteStatus = "FAILED: $e";
+      firestoreWriteStatus = 'ok';
+    } catch (_) {
+      firestoreWriteStatus = 'failed';
     }
 
     // Firestore read
     try {
-      final testRef =
-      FirebaseFirestore.instance.collection("health_check_test");
+      final ref =
+      FirebaseFirestore.instance.collection('health_check_test');
 
-      final snapshot = await testRef.doc("test_doc").get();
-
+      final snapshot = await ref.doc('test_doc').get();
       if (snapshot.exists) {
-        firestoreReadStatus = "OK";
+        firestoreReadStatus = 'ok';
         testDocument = snapshot.data();
       } else {
-        firestoreReadStatus = "FAILED (not found)";
+        firestoreReadStatus = 'failed';
       }
-    } catch (e) {
-      firestoreReadStatus = "FAILED: $e";
+    } catch (_) {
+      firestoreReadStatus = 'failed';
     }
 
     setState(() {});
@@ -84,21 +85,46 @@ class _FirebaseHealthCheckScreenState extends State<FirebaseHealthCheckScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final t = AppLocalizations.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Firebase Health Check")),
+      appBar: AppBar(
+        title: Text(t.t('firebase.healthCheck')),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text(
-            "Firebase System Status",
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          Text(
+            t.t('firebase.systemStatus'),
+            style: theme.textTheme.titleLarge,
           ),
           const SizedBox(height: 20),
 
-          _buildStatusTile("Firebase Core", coreStatus),
-          _buildStatusTile("Auth (Anonymous Login)", authStatus),
-          _buildStatusTile("Firestore Write", firestoreWriteStatus),
-          _buildStatusTile("Firestore Read", firestoreReadStatus),
+          _buildStatusTile(
+            t.t('firebase.core'),
+            coreStatus,
+            theme,
+            t,
+          ),
+          _buildStatusTile(
+            t.t('firebase.auth'),
+            authStatus,
+            theme,
+            t,
+          ),
+          _buildStatusTile(
+            t.t('firebase.firestoreWrite'),
+            firestoreWriteStatus,
+            theme,
+            t,
+          ),
+          _buildStatusTile(
+            t.t('firebase.firestoreRead'),
+            firestoreReadStatus,
+            theme,
+            t,
+          ),
 
           const SizedBox(height: 20),
 
@@ -108,8 +134,9 @@ class _FirebaseHealthCheckScreenState extends State<FirebaseHealthCheckScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Text(
-                  "Read Document:\n${testDocument.toString()}",
-                  style: const TextStyle(fontSize: 14),
+                  '${t.t('firebase.readDocument')}:\n'
+                      '${testDocument.toString()}',
+                  style: theme.textTheme.bodySmall,
                 ),
               ),
             ),
@@ -118,7 +145,7 @@ class _FirebaseHealthCheckScreenState extends State<FirebaseHealthCheckScreen> {
 
           FilledButton(
             onPressed: runChecks,
-            child: const Text("Run Health Check"),
+            child: Text(t.t('firebase.runCheck')),
           ),
 
           const SizedBox(height: 20),
@@ -132,20 +159,30 @@ class _FirebaseHealthCheckScreenState extends State<FirebaseHealthCheckScreen> {
                 ),
               );
             },
-            child: const Text("Open Storage Test Screen"),
+            child: Text(t.t('firebase.openStorageTest')),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatusTile(String title, String status) {
-    final ok = status.startsWith("OK");
-    final fail = status.startsWith("FAILED");
+  Widget _buildStatusTile(
+      String title,
+      String status,
+      ThemeData theme,
+      AppLocalizations t,
+      ) {
+    final ok = status == 'ok';
+    final checking = status == 'checking';
 
-    Color color = Colors.grey;
+    Color color = theme.colorScheme.outline;
     if (ok) color = Colors.green;
-    if (fail) color = Colors.red;
+    if (status == 'failed') color = Colors.red;
+
+    String label = t.t('firebase.statusPending');
+    if (checking) label = t.t('firebase.statusChecking');
+    if (ok) label = t.t('firebase.statusOk');
+    if (status == 'failed') label = t.t('firebase.statusFailed');
 
     return ListTile(
       leading: Icon(
@@ -153,7 +190,7 @@ class _FirebaseHealthCheckScreenState extends State<FirebaseHealthCheckScreen> {
         color: color,
       ),
       title: Text(title),
-      subtitle: Text(status),
+      subtitle: Text(label),
     );
   }
 }

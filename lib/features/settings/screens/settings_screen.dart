@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import 'package:campus_buddy/core/services/auth_service.dart';
+import 'package:campus_buddy/core/state/accessibility_controller.dart';
+import 'package:campus_buddy/core/localization/app_localizations.dart';
+
 import 'package:campus_buddy/features/profile/edit_profile_screen.dart';
 import 'package:campus_buddy/features/notifications/screens/notification_settings_screen.dart';
+import 'package:campus_buddy/features/admin/screens/admin_dashboard_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -15,13 +21,15 @@ class SettingsScreen extends StatelessWidget {
   }
 
   void _clearCache(BuildContext context) {
-    // Placeholder for future cache / downloads clearing
+    final t = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Cache cleared')),
+      SnackBar(content: Text(t.t('common.loading'))),
     );
   }
 
   void _showAbout(BuildContext context) {
+    final t = AppLocalizations.of(context);
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -32,7 +40,7 @@ class SettingsScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            child: Text(t.t('common.confirm')),
           ),
         ],
       ),
@@ -41,39 +49,44 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accessibility = context.watch<AccessibilityController>();
+    final t = AppLocalizations.of(context);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+      backgroundColor: theme.scaffoldBackgroundColor,
+
       appBar: AppBar(
-        backgroundColor: const Color(0xFF2446C8),
-        foregroundColor: Colors.white,
-        title: const Text('Settings'),
-        elevation: 0,
+        title: Text(t.t('nav.settings')),
       ),
+
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          /* ───── ACCOUNT ───── */
           _SectionCard(
             children: [
               _SettingsItem(
                 icon: Icons.person_outline,
-                label: 'Edit Profile',
+                label: t.t('profile.edit'),
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => const EditProfileScreen(),
                     ),
-                  ).then((_) => Navigator.pop(context, true));
+                  );
                 },
               ),
               _SettingsItem(
                 icon: Icons.notifications_outlined,
-                label: 'Notification Settings',
+                label: t.t('notifications.settings'),
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const NotificationSettingsScreen(),
+                      builder: (_) =>
+                      const NotificationSettingsScreen(),
                     ),
                   );
                 },
@@ -83,57 +96,116 @@ class SettingsScreen extends StatelessWidget {
 
           const SizedBox(height: 16),
 
+          /* ───── ACCESSIBILITY ───── */
           _SectionCard(
             children: [
-              _SettingsItem(
-                icon: Icons.delete_sweep_outlined,
-                label: 'Clear cache / downloads',
-                onTap: () => _clearCache(context),
-              ),
-              _SettingsItem(
-                icon: Icons.info_outline,
-                label: 'About / Version',
-                onTap: () => _showAbout(context),
+              SwitchListTile(
+                secondary: const Icon(Icons.contrast),
+                title: Text(
+                  t.t('accessibility.highContrast'),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(t.t('accessibility.title')),
+                value: accessibility.highContrast,
+                onChanged: accessibility.toggleHighContrast,
               ),
             ],
           ),
 
           const SizedBox(height: 16),
 
+          /* ───── LANGUAGE ───── */
+          _SectionCard(
+            children: [
+              Padding(
+                padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.language),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        t.t('nav.settings'),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    DropdownButton<String>(
+                      value: accessibility.languageCode,
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'en',
+                          child: Text('English'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'tr',
+                          child: Text('Türkçe'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          accessibility.setLanguage(value);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          /* ───── SYSTEM ───── */
           _SectionCard(
             children: [
               _SettingsItem(
-                icon: Icons.delete_forever_outlined,
-                label: 'Delete account',
-                enabled: false,
-                danger: true,
+                icon: Icons.admin_panel_settings_outlined,
+                label: t.t('admin.dashboard'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AdminDashboardScreen(),
+                    ),
+                  );
+                },
+              ),
+              _SettingsItem(
+                icon: Icons.delete_sweep_outlined,
+                label: t.t('common.delete'),
+                onTap: () => _clearCache(context),
+              ),
+              _SettingsItem(
+                icon: Icons.info_outline,
+                label: t.t('common.confirm'),
+                onTap: () => _showAbout(context),
               ),
             ],
           ),
 
           const SizedBox(height: 24),
-
-          Divider(color: Colors.grey.shade300),
-
+          Divider(color: theme.dividerColor),
           const SizedBox(height: 12),
 
+          /* ───── LOGOUT ───── */
           SizedBox(
             width: double.infinity,
             height: 48,
             child: OutlinedButton.icon(
               onPressed: () => _logout(context),
-              icon: const Icon(Icons.logout, color: Color(0xFFDC2626)),
-              label: const Text(
-                'Logout',
-                style: TextStyle(
+              icon: const Icon(
+                Icons.logout,
+                color: Color(0xFFDC2626),
+              ),
+              label: Text(
+                t.t('auth.signOut'),
+                style: const TextStyle(
                   color: Color(0xFFDC2626),
                   fontWeight: FontWeight.w700,
-                ),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Color(0xFFFCA5A5)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
             ),
@@ -144,7 +216,7 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
-/* ======================= UI COMPONENTS ======================= */
+/* ───────────────── UI HELPERS ───────────────── */
 
 class _SectionCard extends StatelessWidget {
   final List<Widget> children;
@@ -153,9 +225,11 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
@@ -174,69 +248,42 @@ class _SettingsItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
-  final bool enabled;
-  final bool danger;
 
   const _SettingsItem({
     required this.icon,
     required this.label,
     this.onTap,
-    this.enabled = true,
-    this.danger = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = danger
-        ? const Color(0xFFDC2626)
-        : enabled
-        ? Colors.black87
-        : Colors.black38;
+    final theme = Theme.of(context);
+    final color =
+        theme.textTheme.bodyMedium?.color ?? Colors.black87;
 
     return InkWell(
-      onTap: enabled ? onTap : null,
+      onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, color: color, size: 22),
             const SizedBox(width: 14),
-
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-
-                  // 👇 only shown for disabled items
-                  if (!enabled)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 2),
-                      child: Text(
-                        'Coming soon',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.black38,
-                        ),
-                      ),
-                    ),
-                ],
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-
-            if (enabled)
-              Icon(
-                Icons.chevron_right,
-                color: Colors.grey.shade400,
-              ),
+            Icon(
+              Icons.chevron_right,
+              color: Colors.grey.shade400,
+            ),
           ],
         ),
       ),

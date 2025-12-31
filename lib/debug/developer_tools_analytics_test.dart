@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/localization/app_localizations.dart';
 import '../features/analytics/services/analytics_service.dart';
 import '../features/analytics/services/report_export_service.dart';
 import '../features/analytics/models/student_analytics.dart';
@@ -52,17 +53,19 @@ class _DeveloperToolsAnalyticsTestState
   }
 
   void _showExport(String content) {
+    final t = AppLocalizations.of(context);
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Export Output'),
+        title: Text(t.t('common.export')),
         content: SingleChildScrollView(
           child: SelectableText(content),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: Text(t.t('common.close')),
           ),
         ],
       ),
@@ -77,23 +80,26 @@ class _DeveloperToolsAnalyticsTestState
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final t = AppLocalizations.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Developer Tools — Analytics'),
+        title: Text(t.t('admin.analyticsDebug')),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text(
-            'Student Analytics',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          Text(
+            t.t('analytics.student'),
+            style: theme.textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
           TextField(
             controller: _uidController,
-            decoration: const InputDecoration(
-              labelText: 'Student UID',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: t.t('analytics.studentUid'),
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 8),
@@ -101,7 +107,7 @@ class _DeveloperToolsAnalyticsTestState
             onPressed: _loadingStudent ? null : _loadStudentAnalytics,
             child: _loadingStudent
                 ? const CircularProgressIndicator()
-                : const Text('Load Student Analytics'),
+                : Text(t.t('analytics.loadStudent')),
           ),
           if (_studentAnalytics != null) ...[
             const SizedBox(height: 8),
@@ -111,22 +117,22 @@ class _DeveloperToolsAnalyticsTestState
                     .exportStudentAnalyticsToCsv(_studentAnalytics!);
                 _showExport(csv);
               },
-              child: const Text('Export Student CSV'),
+              child: Text(t.t('analytics.exportStudent')),
             ),
             const SizedBox(height: 8),
             SelectableText(_studentAnalytics!.toMap().toString()),
           ],
           const Divider(height: 32),
-          const Text(
-            'Admin Analytics',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          Text(
+            t.t('analytics.admin'),
+            style: theme.textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
           ElevatedButton(
             onPressed: _loadingAdmin ? null : _loadAdminStats,
             child: _loadingAdmin
                 ? const CircularProgressIndicator()
-                : const Text('Load Admin Stats'),
+                : Text(t.t('analytics.loadAdmin')),
           ),
           if (_adminStats != null) ...[
             const SizedBox(height: 8),
@@ -136,7 +142,7 @@ class _DeveloperToolsAnalyticsTestState
                 _exportService.exportAdminStatsToCsv(_adminStats!);
                 _showExport(csv);
               },
-              child: const Text('Export Admin CSV'),
+              child: Text(t.t('analytics.exportAdmin')),
             ),
             const SizedBox(height: 8),
             SelectableText(_adminStats!.toMap().toString()),

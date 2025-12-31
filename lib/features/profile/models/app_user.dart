@@ -1,8 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Core user domain model.
+/// Represents a user document from Firestore.
+///
+/// Notes:
+/// - Nullable fields reflect optional profile completion
+/// - This model is UI-agnostic and service-agnostic
+/// - Timestamp conversion is handled safely
 class AppUser {
+  /// Firestore document ID
   final String uid;
 
+  // ───────── BASIC PROFILE ─────────
   final String? name;
   final String? email;
   final String? phone;
@@ -13,9 +22,11 @@ class AppUser {
   final String? year;
   final String? profileImageUrl;
 
+  // ───────── ACADEMIC INFO ─────────
   final double? gpa;
   final int? credits;
 
+  // ───────── METADATA ─────────
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -36,8 +47,14 @@ class AppUser {
     this.updatedAt,
   });
 
+  /// Build AppUser from Firestore data.
+  ///
+  /// - Safe against missing documents
+  /// - Timestamp → DateTime handled internally
   factory AppUser.fromMap(String uid, Map<String, dynamic>? data) {
     if (data == null) {
+      // Allows creating a lightweight user object
+      // even if Firestore document does not exist yet
       return AppUser(uid: uid);
     }
 
@@ -59,6 +76,10 @@ class AppUser {
     );
   }
 
+  /// Convert model to Firestore-compatible map.
+  ///
+  /// - Used only by services
+  /// - Timestamps can be overwritten by serverTimestamp if needed
   Map<String, dynamic> toMap() {
     return {
       'name': name,
@@ -77,6 +98,7 @@ class AppUser {
     };
   }
 
+  /// Converts Firestore Timestamp or DateTime into DateTime.
   static DateTime? _toDate(dynamic value) {
     if (value == null) return null;
     if (value is Timestamp) return value.toDate();

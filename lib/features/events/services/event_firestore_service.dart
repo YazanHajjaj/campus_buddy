@@ -2,34 +2,36 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/event.dart';
 import 'event_service.dart';
+import 'event_notification_service.dart';
+import '../../analytics/services/analytics_service.dart';
 
-// Firestore implementation of EventService
-// Handles all backend logic for Events (Phase 4)
-// No auth logic here – uid is passed from upper layers
 class EventFirestoreService implements EventService {
   final FirebaseFirestore _db;
+  final EventNotificationService? _notifications;
+  final AnalyticsService _analytics;
 
-  EventFirestoreService({FirebaseFirestore? firestore})
-      : _db = firestore ?? FirebaseFirestore.instance;
+  EventFirestoreService({
+    FirebaseFirestore? firestore,
+    EventNotificationService? notifications,
+    AnalyticsService? analytics,
+  })  : _db = firestore ?? FirebaseFirestore.instance,
+        _notifications = notifications,
+        _analytics = analytics ?? AnalyticsService();
 
-  // ------------------ paths ------------------
+  /* ───────── PATHS ───────── */
 
-  // events/{eventId}
   CollectionReference<Map<String, dynamic>> get _events =>
       _db.collection('events');
 
-  // events/{eventId}/rsvps/{uid}
   CollectionReference<Map<String, dynamic>> _rsvps(String eventId) =>
       _events.doc(eventId).collection('rsvps');
 
-  // users/{uid}/rsvps/{eventId} (optional mirror)
   CollectionReference<Map<String, dynamic>> _userRsvps(String uid) =>
       _db.collection('users').doc(uid).collection('rsvps');
 
-  // normalize date to midnight (calendar support)
   DateTime _dayStart(DateTime d) => DateTime(d.year, d.month, d.day);
 
-  // ------------------ READ ------------------
+  /* ───────── READ ───────── */
 
   @override
   Future<List<Event>> getUpcomingEvents({int limit = 30}) async {
@@ -49,15 +51,12 @@ class EventFirestoreService implements EventService {
 
   @override
   Stream<List<Event>> watchUpcomingEvents({int limit = 30}) {
-    final now = Timestamp.fromDate(DateTime.now());
-
     return _events
         .where('isActive', isEqualTo: true)
         .orderBy('startTime')
         .snapshots()
         .map(
-          (snap) =>
-          snap.docs.map((d) => Event.fromMap(d.id, d.data())).toList(),
+          (s) => s.docs.map((d) => Event.fromMap(d.id, d.data())).toList(),
     );
   }
 
@@ -78,7 +77,6 @@ class EventFirestoreService implements EventService {
     });
   }
 
-  // calendar support
   @override
   Future<List<Event>> getEventsForDate(DateTime date) async {
     final day = Timestamp.fromDate(_dayStart(date));
@@ -104,20 +102,18 @@ class EventFirestoreService implements EventService {
         .orderBy('startTime')
         .snapshots()
         .map(
-          (snap) =>
-          snap.docs.map((d) => Event.fromMap(d.id, d.data())).toList(),
+          (s) => s.docs.map((d) => Event.fromMap(d.id, d.data())).toList(),
     );
   }
 
-  // ------------------ RSVP ------------------
+  /* ───────── RSVP ───────── */
 
   @override
   Future<bool> hasUserRsvped({
     required String eventId,
     required String uid,
   }) async {
-    final doc = await _rsvps(eventId).doc(uid).get();
-    return doc.exists;
+    return (await _rsvps(eventId).doc(uid).get()).exists;
   }
 
   @override
@@ -129,9 +125,7 @@ class EventFirestoreService implements EventService {
     final capacity = (data['capacity'] as num?)?.toInt() ?? 0;
     final count = (data['attendeesCount'] as num?)?.toInt() ?? 0;
 
-    // capacity = 0 means unlimited
-    if (capacity == 0) return false;
-    return count >= capacity;
+    return capacity > 0 && count >= capacity;
   }
 
   @override
@@ -140,49 +134,52 @@ class EventFirestoreService implements EventService {
     required String uid,
   }) async {
     final eventRef = _events.doc(eventId);
-    final rsvpRef = _rsvps(eventId).doc(uid);
-    final userMirrorRef = _userRsvps(uid).doc(eventId);
+    late Event event;
 
-    // transaction avoids race conditions
     await _db.runTransaction((tx) async {
-      final eventSnap = await tx.get(eventRef);
-      final eventData = eventSnap.data();
+      final snap = await tx.get(eventRef);
+      final data = snap.data();
+      if (data == null) throw StateError('Event not found');
 
-      if (eventData == null) throw StateError('Event not found');
-      if (eventData['isActive'] != true) {
-        throw StateError('Event inactive');
-      }
+      event = Event.fromMap(snap.id, data);
 
-      // already RSVPed
-      final rsvpSnap = await tx.get(rsvpRef);
-      if (rsvpSnap.exists) return;
+      final rsvpRef = _rsvps(eventId).doc(uid);
+      if ((await tx.get(rsvpRef)).exists) return;
 
-      final capacity = (eventData['capacity'] as num?)?.toInt() ?? 0;
-      final count = (eventData['attendeesCount'] as num?)?.toInt() ?? 0;
-
-      if (capacity > 0 && count >= capacity) {
+      if (event.capacity > 0 &&
+          event.attendeesCount >= event.capacity) {
         throw StateError('Event full');
       }
 
-      // create RSVP
       tx.set(rsvpRef, {
         'uid': uid,
         'eventId': eventId,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // optional user mirror
-      tx.set(userMirrorRef, {
+      tx.set(_userRsvps(uid).doc(eventId), {
         'eventId': eventId,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // increment counter
       tx.update(eventRef, {
         'attendeesCount': FieldValue.increment(1),
         'updatedAt': FieldValue.serverTimestamp(),
       });
     });
+
+    // 🔔 Notification
+    await _notifications?.notifyRsvpConfirmed(
+      eventId: eventId,
+      uid: uid,
+      title: event.title,
+    );
+
+    // 📊 Analytics (NON-BLOCKING)
+    await _analytics.logEventRsvp(
+      uid: uid,
+      eventId: eventId,
+    );
   }
 
   @override
@@ -190,43 +187,48 @@ class EventFirestoreService implements EventService {
     required String eventId,
     required String uid,
   }) async {
-    final eventRef = _events.doc(eventId);
-    final rsvpRef = _rsvps(eventId).doc(uid);
-    final userMirrorRef = _userRsvps(uid).doc(eventId);
+    final eventSnap = await _events.doc(eventId).get();
+    if (!eventSnap.exists) return;
+
+    final event = Event.fromMap(eventSnap.id, eventSnap.data()!);
 
     await _db.runTransaction((tx) async {
-      final snap = await tx.get(rsvpRef);
-      if (!snap.exists) return;
+      final rsvpRef = _rsvps(eventId).doc(uid);
+      if (!(await tx.get(rsvpRef)).exists) return;
 
       tx.delete(rsvpRef);
-      tx.delete(userMirrorRef);
+      tx.delete(_userRsvps(uid).doc(eventId));
 
-      tx.update(eventRef, {
+      tx.update(_events.doc(eventId), {
         'attendeesCount': FieldValue.increment(-1),
         'updatedAt': FieldValue.serverTimestamp(),
       });
     });
+
+    await _notifications?.notifyRsvpCanceled(
+      eventId: eventId,
+      uid: uid,
+      title: event.title,
+    );
   }
 
-  // ------------------ ADMIN ------------------
+  /* ───────── ADMIN ───────── */
 
   @override
   Future<String> createEvent(Event event) async {
-    // NOTE:
-    // - admin enforcement is handled by Firestore rules
-    // - service assumes valid caller
-
     final doc = await _events.add({
       ...event.toMap(),
-
-      // REQUIRED for queries
       'isActive': true,
       'attendeesCount': 0,
-
-      // safety timestamps
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
+
+    await _notifications?.notifyEventCreated(
+      eventId: doc.id,
+      title: event.title,
+      targetUids: const [],
+    );
 
     return doc.id;
   }
@@ -235,6 +237,16 @@ class EventFirestoreService implements EventService {
   Future<void> updateEvent(Event event) async {
     await _events.doc(event.id).update({
       ...event.toMap(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> updateEventImage({
+    required String eventId,
+    required String imageUrl,
+  }) async {
+    await _events.doc(eventId).update({
+      'imageUrl': imageUrl,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }

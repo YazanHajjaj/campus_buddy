@@ -1,17 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Session lifecycle states stored as strings in Firestore
-/// Enum prevents invalid transitions in code
+/// Lifecycle states for a mentorship session
+/// Stored as lowercase strings in Firestore
 enum MentorshipSessionStatus {
   scheduled,
   completed,
   canceled,
 }
 
-/// Converts Firestore string value into enum
+/// Converts Firestore string → enum
 /// Defaults to `scheduled` for backward compatibility
-MentorshipSessionStatus sessionStatusFromString(String? s) {
-  switch (s) {
+MentorshipSessionStatus sessionStatusFromString(String? value) {
+  switch (value) {
     case 'completed':
       return MentorshipSessionStatus.completed;
     case 'canceled':
@@ -22,19 +22,27 @@ MentorshipSessionStatus sessionStatusFromString(String? s) {
   }
 }
 
-/// Converts enum back to Firestore-safe string
-String sessionStatusToString(MentorshipSessionStatus s) => s.name;
+/// Converts enum → Firestore-safe string
+String sessionStatusToString(MentorshipSessionStatus status) {
+  return status.name;
+}
 
-/// Represents a single mentorship session (meeting)
+/// Represents a scheduled mentorship session (meeting)
 /// Stored in `mentorship_sessions/{sessionId}`
 class MentorshipSession {
-  /// Firestore document ID
   final String id;
   final String mentorId;
   final String studentId;
+
+  /// Scheduled start time
   final Timestamp scheduledAt;
+
+  /// Session duration in minutes
   final int durationMinutes;
+
+  /// Optional private notes (mentor/admin use)
   final String? notes;
+
   final MentorshipSessionStatus status;
 
   /// Audit timestamps
@@ -53,8 +61,8 @@ class MentorshipSession {
     required this.updatedAt,
   });
 
-  /// Firestore serialization
-  /// `id` is excluded since it's the document key
+  /// Converts model → Firestore map
+  /// Document ID is excluded (used as key)
   Map<String, dynamic> toMap() {
     return {
       'mentorId': mentorId,
@@ -68,12 +76,13 @@ class MentorshipSession {
     };
   }
 
-  /// Safe Firestore deserialization
-  /// Provides defaults for optional or missing fields
+  /// Creates model from Firestore document
+  /// Safely handles missing or legacy fields
   static MentorshipSession fromDoc(
       DocumentSnapshot<Map<String, dynamic>> doc,
       ) {
     final data = doc.data() ?? {};
+
     return MentorshipSession(
       id: doc.id,
       mentorId: (data['mentorId'] ?? '') as String,

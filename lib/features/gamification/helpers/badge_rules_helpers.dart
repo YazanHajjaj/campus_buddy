@@ -10,21 +10,33 @@ enum BadgeTrigger {
 }
 
 /// Declarative badge definition.
-/// No evaluation logic here.
+///
+/// IMPORTANT:
+/// - No evaluation logic here
+/// - No localization resolution here
+/// - Uses translation KEYS only
 class BadgeRule {
   final String id;
   final BadgeTrigger trigger;
-  final String title;
-  final String description;
-  final String icon; // icon asset or name
+
+  /// Localization keys (resolved in UI / notifications)
+  final String titleKey;
+  final String descriptionKey;
+
+  /// Icon asset name or identifier
+  final String icon;
+
+  /// Required progress count to unlock
   final int requiredCount;
-  final String sourceKey; // must match xp / analytics keys
+
+  /// Must match analytics / XP source keys
+  final String sourceKey;
 
   const BadgeRule({
     required this.id,
     required this.trigger,
-    required this.title,
-    required this.description,
+    required this.titleKey,
+    required this.descriptionKey,
     required this.icon,
     required this.requiredCount,
     required this.sourceKey,
@@ -39,8 +51,8 @@ class BadgeRules {
   static const BadgeRule firstResourceUpload = BadgeRule(
     id: 'badge.first_resource_upload',
     trigger: BadgeTrigger.resource,
-    title: 'First Contribution',
-    description: 'Uploaded your first resource',
+    titleKey: 'badges.firstResource.title',
+    descriptionKey: 'badges.firstResource.desc',
     icon: 'badge_upload_1',
     requiredCount: 1,
     sourceKey: 'resource.uploaded',
@@ -49,8 +61,8 @@ class BadgeRules {
   static const BadgeRule resourceExplorer = BadgeRule(
     id: 'badge.resource_explorer',
     trigger: BadgeTrigger.resource,
-    title: 'Resource Explorer',
-    description: 'Viewed 20 resources',
+    titleKey: 'badges.resourceExplorer.title',
+    descriptionKey: 'badges.resourceExplorer.desc',
     icon: 'badge_resource_explorer',
     requiredCount: 20,
     sourceKey: 'resource.viewed',
@@ -61,8 +73,8 @@ class BadgeRules {
   static const BadgeRule firstEventAttended = BadgeRule(
     id: 'badge.first_event',
     trigger: BadgeTrigger.event,
-    title: 'First Event',
-    description: 'Attended your first event',
+    titleKey: 'badges.firstEvent.title',
+    descriptionKey: 'badges.firstEvent.desc',
     icon: 'badge_event_1',
     requiredCount: 1,
     sourceKey: 'event.attended',
@@ -71,8 +83,8 @@ class BadgeRules {
   static const BadgeRule eventExplorer = BadgeRule(
     id: 'badge.event_explorer',
     trigger: BadgeTrigger.event,
-    title: 'Event Explorer',
-    description: 'Attended 5 events',
+    titleKey: 'badges.eventExplorer.title',
+    descriptionKey: 'badges.eventExplorer.desc',
     icon: 'badge_event_5',
     requiredCount: 5,
     sourceKey: 'event.attended',
@@ -83,8 +95,8 @@ class BadgeRules {
   static const BadgeRule mentorBuddy = BadgeRule(
     id: 'badge.mentor_buddy',
     trigger: BadgeTrigger.mentorship,
-    title: 'Mentor Buddy',
-    description: 'Completed your first mentorship session',
+    titleKey: 'badges.mentorBuddy.title',
+    descriptionKey: 'badges.mentorBuddy.desc',
     icon: 'badge_mentor_1',
     requiredCount: 1,
     sourceKey: 'mentorship.session_completed',
@@ -93,8 +105,8 @@ class BadgeRules {
   static const BadgeRule mentorshipActive = BadgeRule(
     id: 'badge.mentorship_active',
     trigger: BadgeTrigger.mentorship,
-    title: 'Mentorship Active',
-    description: 'Completed 5 mentorship sessions',
+    titleKey: 'badges.mentorshipActive.title',
+    descriptionKey: 'badges.mentorshipActive.desc',
     icon: 'badge_mentor_5',
     requiredCount: 5,
     sourceKey: 'mentorship.session_completed',
@@ -105,8 +117,8 @@ class BadgeRules {
   static const BadgeRule firstStudyGroup = BadgeRule(
     id: 'badge.study_group_join',
     trigger: BadgeTrigger.studyGroup,
-    title: 'Study Group Member',
-    description: 'Joined your first study group',
+    titleKey: 'badges.studyGroup.title',
+    descriptionKey: 'badges.studyGroup.desc',
     icon: 'badge_group_1',
     requiredCount: 1,
     sourceKey: 'study_group.joined',
@@ -115,21 +127,20 @@ class BadgeRules {
   static const BadgeRule studyGroupContributor = BadgeRule(
     id: 'badge.study_group_chat',
     trigger: BadgeTrigger.studyGroup,
-    title: 'Group Contributor',
-    description: 'Sent 50 study group messages',
+    titleKey: 'badges.studyGroupChat.title',
+    descriptionKey: 'badges.studyGroupChat.desc',
     icon: 'badge_group_chat',
     requiredCount: 50,
     sourceKey: 'study_group.chat_message',
   );
 
   // ---------------- Streaks ----------------
-  // depends on analytics active-day tracking
 
   static const BadgeRule activeStreak7 = BadgeRule(
     id: 'badge.streak_7',
     trigger: BadgeTrigger.streak,
-    title: 'Consistent Learner',
-    description: 'Active for 7 consecutive days',
+    titleKey: 'badges.streak7.title',
+    descriptionKey: 'badges.streak7.desc',
     icon: 'badge_streak_7',
     requiredCount: 7,
     sourceKey: 'system.daily_active',
@@ -138,8 +149,8 @@ class BadgeRules {
   static const BadgeRule activeStreak30 = BadgeRule(
     id: 'badge.streak_30',
     trigger: BadgeTrigger.streak,
-    title: 'Dedicated Scholar',
-    description: 'Active for 30 consecutive days',
+    titleKey: 'badges.streak30.title',
+    descriptionKey: 'badges.streak30.desc',
     icon: 'badge_streak_30',
     requiredCount: 30,
     sourceKey: 'system.daily_active',

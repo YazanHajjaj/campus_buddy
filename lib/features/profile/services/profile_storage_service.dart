@@ -1,16 +1,19 @@
 import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 import '../models/app_user.dart';
 import 'profile_service.dart';
+import '../../../core/services/firestore_user_service.dart';
 
 /// Handles profile image storage and Firestore profile access.
 /// Storage ONLY uploads/deletes files.
-/// Firestore writes are handled by ProfileController.
+/// Firestore writes are handled here for profile data.
 class ProfileStorageService implements ProfileService {
   final _users = FirebaseFirestore.instance.collection('users');
   final _storage = FirebaseStorage.instance;
+  final _userService = FirestoreUserService();
 
   ProfileStorageService();
 
@@ -53,13 +56,21 @@ class ProfileStorageService implements ProfileService {
   }
 
   @override
-  Future<void> updateUserProfile(String uid, Map<String, dynamic> data) {
-    return _users.doc(uid).set(
+  Future<void> updateUserProfile(String uid, Map<String, dynamic> data) async {
+    await _users.doc(uid).set(
       {
         ...data,
         'updatedAt': FieldValue.serverTimestamp(),
       },
       SetOptions(merge: true),
+    );
+
+    // ✅ ONBOARDING CHECKLIST: profile completed
+    // Fire-and-forget to avoid blocking profile save
+    _userService.updateOnboardingFlag(
+      uid,
+      'profileCompleted',
+      true,
     );
   }
 

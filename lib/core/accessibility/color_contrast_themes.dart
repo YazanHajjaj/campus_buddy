@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 
-/// Defines color themes used for accessibility.
-/// Actual theme application is handled elsewhere.
-
+/// Color contrast theme variants used for accessibility.
 class ColorContrastThemes {
   const ColorContrastThemes();
 
+  /// Standard theme (no contrast changes).
   static ThemeData standard(ThemeData base) {
     return base;
   }
 
+  /// High-contrast theme for improved readability.
   static ThemeData highContrast(ThemeData base) {
     return base.copyWith(
       colorScheme: base.colorScheme.copyWith(

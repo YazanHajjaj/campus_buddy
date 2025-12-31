@@ -4,7 +4,6 @@
 - Keys available: ❌ (waiting for localization_keys.dart)
 - Base English template (en.json) available: ❌ (waiting)
 - Turkish translation started: ❌
-- Arabic translation started (optional): ❌
 
 ## QA Checklist (use when en.json exists)
 - [ ] Every key exists in en.json (no missing base strings)

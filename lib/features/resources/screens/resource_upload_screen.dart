@@ -1,9 +1,12 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+
+import 'package:campus_buddy/core/localization/app_localizations.dart';
 
 class ResourceUploadScreen extends StatefulWidget {
   const ResourceUploadScreen({super.key});
@@ -21,6 +24,16 @@ class _ResourceUploadScreenState extends State<ResourceUploadScreen> {
   File? _pickedFile;
   bool _uploading = false;
 
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descController.dispose();
+    _courseController.dispose();
+    super.dispose();
+  }
+
+  /* ───────────────── PICK PDF ───────────────── */
+
   Future<void> _pickPdf() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -34,8 +47,16 @@ class _ResourceUploadScreenState extends State<ResourceUploadScreen> {
     });
   }
 
+  /* ───────────────── UPLOAD ───────────────── */
   Future<void> _upload() async {
-    if (_pickedFile == null || _titleController.text.isEmpty) return;
+    final t = AppLocalizations.of(context);
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null ||
+        _pickedFile == null ||
+        _titleController.text.trim().isEmpty) {
+      return;
+    }
 
     setState(() => _uploading = true);
 
@@ -43,12 +64,13 @@ class _ResourceUploadScreenState extends State<ResourceUploadScreen> {
       final fileName = DateTime.now().millisecondsSinceEpoch.toString();
       final storagePath = 'resources/$fileName.pdf';
 
-      // Upload to Firebase Storage
+      // ───── Storage upload ─────
       final ref = FirebaseStorage.instance.ref(storagePath);
       await ref.putFile(_pickedFile!);
       final downloadUrl = await ref.getDownloadURL();
 
-      // Save Firestore document
+      // ───── Firestore resource document ─────
+      final resourceRef =
       await FirebaseFirestore.instance.collection('resources').add({
         'title': _titleController.text.trim(),
         'description': _descController.text.trim(),
@@ -69,35 +91,56 @@ class _ResourceUploadScreenState extends State<ResourceUploadScreen> {
         'isActive': true,
         'isPublic': true,
 
+        // User
+        'uploaderUserId': user.uid,
+        'uploaderDisplayName':
+        user.displayName ??
+            user.email?.split('@').first ??
+            t.t('common.student'),
+
         // Meta
-        'uploaderUserId': 'testUser123',
-        'uploaderDisplayName': 'Test User',
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
         'lastAccessedAt': null,
       });
 
-      if (mounted) Navigator.pop(context);
-    } catch (e) {
+      //  ANALYTICS TRIGGER (THIS WAS MISSING)
+      await FirebaseFirestore.instance.collection('usage_logs').add({
+        'uid': user.uid,
+        'type': 'resource_upload',
+        'resourceId': resourceRef.id,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (_) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Upload failed: $e')),
+        SnackBar(content: Text(t.t('common.error'))),
       );
     } finally {
       if (mounted) setState(() => _uploading = false);
     }
   }
 
+  /* ───────────────── UI ───────────────── */
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final t = AppLocalizations.of(context);
 
-      // ───── APP BAR ─────
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+
       appBar: AppBar(
-        backgroundColor: const Color(0xFF2446C8),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text('Upload Resource'),
+        centerTitle: true,
+        title: Text(
+          t.t('resources.upload'),
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
       ),
 
       body: SingleChildScrollView(
@@ -106,33 +149,35 @@ class _ResourceUploadScreenState extends State<ResourceUploadScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _field('Title', _titleController),
+              _field(t.t('common.title'), _titleController),
               const SizedBox(height: 12),
 
-              _multilineField('Description', _descController),
+              _multilineField(t.t('common.description'), _descController),
               const SizedBox(height: 12),
 
-              _field('Course Code', _courseController),
+              _field(t.t('resources.courseCode'), _courseController),
               const SizedBox(height: 12),
 
               DropdownButtonFormField<String>(
                 value: _category,
-                items: const [
-                  DropdownMenuItem(value: 'Math', child: Text('Math')),
-                  DropdownMenuItem(value: 'Physics', child: Text('Physics')),
-                  DropdownMenuItem(value: 'Programming', child: Text('Programming')),
+                items: [
+                  DropdownMenuItem(value: 'Math', child: Text(t.t('categories.math'))),
+                  DropdownMenuItem(value: 'Physics', child: Text(t.t('categories.physics'))),
+                  DropdownMenuItem(value: 'Programming', child: Text(t.t('categories.programming'))),
                 ],
                 onChanged: (v) => setState(() => _category = v!),
-                decoration: _inputDecoration('Category'),
+                decoration: _inputDecoration(t.t('common.category'), theme),
               ),
 
               const SizedBox(height: 20),
 
               OutlinedButton.icon(
-                onPressed: _pickPdf,
+                onPressed: _uploading ? null : _pickPdf,
                 icon: const Icon(Icons.attach_file),
                 label: Text(
-                  _pickedFile == null ? 'Pick PDF' : 'PDF selected',
+                  _pickedFile == null
+                      ? t.t('resources.pickPdf')
+                      : t.t('resources.pdfSelected'),
                 ),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 48),
@@ -150,10 +195,14 @@ class _ResourceUploadScreenState extends State<ResourceUploadScreen> {
                 child: ElevatedButton.icon(
                   onPressed: _uploading ? null : _upload,
                   icon: const Icon(Icons.cloud_upload),
-                  label: Text(_uploading ? 'Uploading...' : 'Upload'),
+                  label: Text(
+                    _uploading
+                        ? t.t('common.uploading')
+                        : t.t('common.upload'),
+                  ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2446C8),
-                    foregroundColor: Colors.white,
+                    backgroundColor: colors.primary,
+                    foregroundColor: colors.onPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -167,10 +216,12 @@ class _ResourceUploadScreenState extends State<ResourceUploadScreen> {
     );
   }
 
+  /* ───────────────── FIELDS ───────────────── */
+
   Widget _field(String label, TextEditingController controller) {
     return TextField(
       controller: controller,
-      decoration: _inputDecoration(label),
+      decoration: _inputDecoration(label, Theme.of(context)),
     );
   }
 
@@ -178,15 +229,15 @@ class _ResourceUploadScreenState extends State<ResourceUploadScreen> {
     return TextField(
       controller: controller,
       maxLines: 3,
-      decoration: _inputDecoration(label),
+      decoration: _inputDecoration(label, Theme.of(context)),
     );
   }
 
-  InputDecoration _inputDecoration(String label) {
+  InputDecoration _inputDecoration(String label, ThemeData theme) {
     return InputDecoration(
       labelText: label,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: theme.cardColor,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
       ),
@@ -194,7 +245,7 @@ class _ResourceUploadScreenState extends State<ResourceUploadScreen> {
   }
 }
 
-/* ───────── CARD SHELL ───────── */
+/* ───────────────── CARD SHELL ───────────────── */
 
 class _CardShell extends StatelessWidget {
   final Widget child;
@@ -203,10 +254,12 @@ class _CardShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(

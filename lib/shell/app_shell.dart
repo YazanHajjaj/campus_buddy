@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../home/home_page.dart';
 
 // Mentorship
-import '../features/mentorship/screens/mentor_list_screen.dart';
+import '../features/mentorship/screens/mentorship_root_screen.dart';
 
 // Resources
 import '../features/resources/screens/resource_list_screen.dart';
@@ -12,7 +12,7 @@ import '../features/resources/screens/resource_list_screen.dart';
 // Events
 import '../features/events/screens/event_list_screen.dart';
 
-// Profile (VIEW screen, not edit)
+// Profile
 import '../features/profile/screen/profile_screen.dart';
 
 class AppShell extends StatefulWidget {
@@ -25,12 +25,12 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
 
-  late final List<Widget> _pages = const [
+  final List<Widget> _pages = const [
     HomePage(),
-    MentorListScreen(),
+    MentorshipRootScreen(),
     ResourceListScreen(),
     EventListScreen(),
-    ProfileScreen(), // ✅ THIS IS THE FIX
+    ProfileScreen(),
   ];
 
   @override
@@ -40,14 +40,14 @@ class _AppShellState extends State<AppShell> {
         index: _currentIndex,
         children: _pages,
       ),
+
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() => _currentIndex = index);
-        },
+        onTap: (index) => setState(() => _currentIndex = index),
         type: BottomNavigationBarType.fixed,
-        showSelectedLabels: true,
-        showUnselectedLabels: true,
+
+        // ✅ NO hardcoded colors
+        // Theme controls everything
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
